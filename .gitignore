@@ -1,27 +1,11 @@
-# --- SvelteKit ---
 .svelte-kit/
+node_modules/
 build/
 package/
 .env
 .env.test
-
-# --- Node.js ---
-node_modules/
-package-lock.json
-# (A package-lock-ot általában érdemes commitolni, de ha egyedül fejleszted és sokat variálsz, néha zavaró. 
-# Profi projekteknél inkább hagyd ki a gitignore-ból, de kezdőként sokszor egyszerűbb nélküle.)
-
-# --- Prisma ---
-/prisma/migrations-lock.toml
-# Ha a generált klienst egyedi helyre teszed:
-/generated/
-
-# --- TypeScript & Editor ---
-*.tsbuildinfo
 .vscode/
 .idea/
-*.iml
-
-# --- OS ---
-.DS_Store
-Thumbs.db
+target/
+*.class
+/prisma/migrations-lock.toml
