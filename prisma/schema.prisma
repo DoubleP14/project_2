@@ -7,10 +7,77 @@ datasource db {
   provider = "postgresql"
 }
 
-model Post {
-  id        Int      @id @default(autoincrement())
-  title     String
-  content   String?
-  createdAt DateTime @default(now())
-  timezone  Int?
+// --- 2. FELHASZNÁLÓK TÁBLA ---
+model Felhasznalok {
+  id                  Int       @id @default(autoincrement())
+  username            String    @unique
+  email               String    @unique
+  role                String?   @default("user")
+  ai_provider         String?   @default("ollama")
+  gemini_api_key      String?
+  openai_api_key      String?
+  custom_ai_endpoint  String?
+  regisztracio_datuma DateTime? @default(now())
+
+  // Kapcsolatok (Ezek azok a nyilak, amiket a DataGrip-ben is láttál)
+  rss_feedek  FelhasznaloRssFeedek[]
+  hirek       Hirek[]
+  ertesitesek Ertesitesek[]
+}
+
+// --- 3. SAJÁT RSS FORRÁSOK ---
+model FelhasznaloRssFeedek {
+  id               Int       @id @default(autoincrement())
+  felhasznalo_id   Int
+  feed_url         String
+  feed_nev         String?
+  utolso_frissites DateTime?
+
+  // Visszamutató kapcsolat a felhasználóra
+  felhasznalo Felhasznalok @relation(fields: [felhasznalo_id], references: [id], onDelete: Cascade)
+}
+
+// --- 4. HÍREK TÁBLA ---
+model Hirek {
+  id             Int       @id @default(autoincrement())
+  cim            String
+  forras         String?
+  datum          DateTime? @default(now())
+  felhasznalo_id Int?
+  is_private     Boolean?  @default(false)
+
+  // Visszamutató kapcsolat a felhasználóra
+  felhasznalo Felhasznalok? @relation(fields: [felhasznalo_id], references: [id], onDelete: SetNull)
+
+  // Kapcsolat az elemzésekhez és értesítésekhez
+  ai_elemzesek AiElemzesek[]
+  ertesitesek  Ertesitesek[]
+}
+
+// --- 5. AI ELEMZÉSEK (CACHE) ---
+model AiElemzesek {
+  id              Int       @id @default(autoincrement())
+  hir_id          Int
+  hangulat        String?
+  osszefoglalo    String?
+  kulcsszavak     String[] // Itt a Prisma automatikusan tudja, hogy ez egy tömb (array)
+  hasznalt_modell String?
+  elemzes_datuma  DateTime? @default(now())
+
+  // Visszamutató kapcsolat a hírre
+  hir Hirek @relation(fields: [hir_id], references: [id], onDelete: Cascade)
+}
+
+// --- 6. ÉRTESÍTÉSEK NAPLÓJA ---
+model Ertesitesek {
+  id             Int       @id @default(autoincrement())
+  felhasznalo_id Int
+  hir_id         Int?
+  csatorna       String?
+  uzenet         String?
+  elkuldve_ekkor DateTime? @default(now())
+
+  // Visszamutató kapcsolatok
+  felhasznalo Felhasznalok @relation(fields: [felhasznalo_id], references: [id], onDelete: Cascade)
+  hir         Hirek?       @relation(fields: [hir_id], references: [id])
 }
