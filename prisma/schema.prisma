@@ -13,16 +13,16 @@ model Felhasznalok {
   username            String    @unique
   email               String    @unique
   role                String?   @default("user")
-  ai_provider         String?   @default("ollama")
-  gemini_api_key      String?
-  openai_api_key      String?
-  custom_ai_endpoint  String?
+  subscription_tier   String?   @default("alap") 
+  ai_provider         String?   
+  api_key             String?   
+  custom_ai_endpoint  String?   
   regisztracio_datuma DateTime? @default(now())
 
-  // Kapcsolatok (Ezek azok a nyilak, amiket a DataGrip-ben is láttál)
-  rss_feedek  FelhasznaloRssFeedek[]
-  hirek       Hirek[]
-  ertesitesek Ertesitesek[]
+  // Kapcsolatok
+  rss_feedek          FelhasznaloRssFeedek[]
+  hirek               Hirek[]
+  ertesitesek         Ertesitesek[]
 }
 
 // --- 3. SAJÁT RSS FORRÁSOK ---
