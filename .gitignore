@@ -1,5 +1,30 @@
-node_modules
-# Keep environment variables out of version control
-.env
+# --- SvelteKit (Ezt mindenképp add hozzá!) ---
+.svelte-kit/
+build/
+package/
 
+# --- Node.js & Csomagkezelő ---
+node_modules/
+.npm
+dist/
+*.log
+
+# --- Prisma & Titkok ---
+# Ez lefedi a mostani .env beállításodat is
+.env
+.env.test
+/prisma/migrations-lock.toml
 /generated/prisma
+
+# --- TypeScript & Fejlesztői eszközök ---
+*.tsbuildinfo
+.vscode/
+!.vscode/extensions.json
+
+# --- Operációs rendszer ---
+.DS_Store
+Thumbs.db
+
+# --- Tesztelés ---
+/test-results/
+/playwright-report/
