@@ -1,34 +1,23 @@
-# --- SvelteKit ---
-# Ideiglenes fájlok, amiket a keretrendszer generál futáskor
-.svelte-kit/
-build/
-package/
+node_modules
 
-# --- Node.js ---
-# A könyvtárak, amiket az npm install tölt le (több száz MB is lehet)
-node_modules/
-.npm
-dist/
-*.log
+# Output
+.output
+.vercel
+.netlify
+.wrangler
+/.svelte-kit
+/build
 
-# --- Prisma & Titkok (KRITIKUS!) ---
-# Az adatbázis jelszavadat tartalmazó fájl - SOHA ne commitold!
-.env
-.env.test
-/prisma/migrations-lock.toml
-
-# --- TypeScript ---
-# Gyorsítótár fájlok a fordításhoz
-*.tsbuildinfo
-
-# --- VS Code & IDE ---
-# Egyéni szerkesztő beállítások
-.vscode/
-.idea/
-*.iml
-*.code-workspace
-
-# --- Operációs rendszer ---
-# Windows és Mac rendszerfájlok
+# OS
 .DS_Store
 Thumbs.db
+
+# Env
+.env
+.env.*
+!.env.example
+!.env.test
+
+# Vite
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*
