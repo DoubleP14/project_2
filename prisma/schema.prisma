@@ -33,7 +33,7 @@ model FelhasznaloRssFeedek {
   feed_nev         String?
   utolso_frissites DateTime?
 
-  // Visszamutató kapcsolat a felhasználóra
+  // Visszamutató kapcsolat
   felhasznalo Felhasznalok @relation(fields: [felhasznalo_id], references: [id], onDelete: Cascade)
 }
 
@@ -46,10 +46,10 @@ model Hirek {
   felhasznalo_id Int?
   is_private     Boolean?  @default(false)
 
-  // Visszamutató kapcsolat a felhasználóra
+  // Visszamutató kapcsolat
   felhasznalo Felhasznalok? @relation(fields: [felhasznalo_id], references: [id], onDelete: SetNull)
 
-  // Kapcsolat az elemzésekhez és értesítésekhez
+  // Kapcsolatok
   ai_elemzesek AiElemzesek[]
   ertesitesek  Ertesitesek[]
 }
@@ -60,11 +60,11 @@ model AiElemzesek {
   hir_id          Int
   hangulat        String?
   osszefoglalo    String?
-  kulcsszavak     String[] // Itt a Prisma automatikusan tudja, hogy ez egy tömb (array)
+  kulcsszavak     String[] // Prisma automatikusan tudja, hogy ez egy tömb
   hasznalt_modell String?
   elemzes_datuma  DateTime? @default(now())
 
-  // Visszamutató kapcsolat a hírre
+  // Visszamutató kapcsolat 
   hir Hirek @relation(fields: [hir_id], references: [id], onDelete: Cascade)
 }
 
