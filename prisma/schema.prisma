@@ -12,44 +12,47 @@ model Felhasznalok {
   id                  Int       @id @default(autoincrement())
   username            String    @unique
   email               String    @unique
+  password_hash       String?
   role                String?   @default("user")
-  subscription_tier   String?   @default("alap") 
-  ai_provider         String?   
-  api_key             String?   
-  custom_ai_endpoint  String?   
+  subscription_tier   String?   @default("alap")
+  ai_provider         String?
+  api_key             String?
+  custom_ai_endpoint  String?
   regisztracio_datuma DateTime? @default(now())
 
   // Kapcsolatok
-  rss_feedek          FelhasznaloRssFeedek[]
-  hirek               Hirek[]
-  ertesitesek         Ertesitesek[]
+  rss_feedek      FelhasznaloRssFeedek[]
+  hirek           Hirek[]
+  ertesitesek     Ertesitesek[]
+  rendszer_naplok RendszerNaplo[]
 }
 
-// --- 3. SAJÁT RSS FORRÁSOK ---
+// --- 3. RSS FORRÁSOK (Saját és Globális) ---
 model FelhasznaloRssFeedek {
   id               Int       @id @default(autoincrement())
-  felhasznalo_id   Int
+  felhasznalo_id   Int? // Ha üres, akkor ez egy globális (mindenki által látott) feed
   feed_url         String
   feed_nev         String?
+  kategoria        String?
+  is_global        Boolean?  @default(false)
   utolso_frissites DateTime?
 
-  // Visszamutató kapcsolat
-  felhasznalo Felhasznalok @relation(fields: [felhasznalo_id], references: [id], onDelete: Cascade)
+  felhasznalo Felhasznalok? @relation(fields: [felhasznalo_id], references: [id], onDelete: Cascade)
 }
 
 // --- 4. HÍREK TÁBLA ---
 model Hirek {
   id             Int       @id @default(autoincrement())
   cim            String
+  url            String?
+  tartalom       String?
   forras         String?
   datum          DateTime? @default(now())
   felhasznalo_id Int?
   is_private     Boolean?  @default(false)
 
-  // Visszamutató kapcsolat
   felhasznalo Felhasznalok? @relation(fields: [felhasznalo_id], references: [id], onDelete: SetNull)
 
-  // Kapcsolatok
   ai_elemzesek AiElemzesek[]
   ertesitesek  Ertesitesek[]
 }
@@ -60,11 +63,10 @@ model AiElemzesek {
   hir_id          Int
   hangulat        String?
   osszefoglalo    String?
-  kulcsszavak     String[] // Prisma automatikusan tudja, hogy ez egy tömb
+  kulcsszavak     String[]
   hasznalt_modell String?
   elemzes_datuma  DateTime? @default(now())
 
-  // Visszamutató kapcsolat 
   hir Hirek @relation(fields: [hir_id], references: [id], onDelete: Cascade)
 }
 
@@ -77,7 +79,18 @@ model Ertesitesek {
   uzenet         String?
   elkuldve_ekkor DateTime? @default(now())
 
-  // Visszamutató kapcsolatok
   felhasznalo Felhasznalok @relation(fields: [felhasznalo_id], references: [id], onDelete: Cascade)
   hir         Hirek?       @relation(fields: [hir_id], references: [id])
+}
+
+// --- 7. RENDSZERNAPLÓ (HISTORY / LOGGING) ---
+model RendszerNaplo {
+  id             Int      @id @default(autoincrement())
+  felhasznalo_id Int?
+  esemeny_tipus  String // Pl. "BEJELENTKEZES", "HIBA", "RSS_HOZZAADAS"
+  leiras         String
+  ip_cim         String?
+  letrehozva     DateTime @default(now())
+
+  felhasznalo Felhasznalok? @relation(fields: [felhasznalo_id], references: [id], onDelete: SetNull)
 }
