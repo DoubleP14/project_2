@@ -6,6 +6,21 @@ datasource db {
   provider = "postgresql"
 }
 
+// --- 1. ENUMOK (Típusok beállítása a rugalmas működéshez) ---
+enum ForrasTipus {
+  RSS
+  TWITTER
+  REDDIT
+  YOUTUBE
+  API
+}
+
+enum ErtesitesTipus {
+  EMAIL
+  DISCORD
+  TELEGRAM
+}
+
 // --- 2. FELHASZNÁLÓK TÁBLA ---
 model Felhasznalok {
   id                  Int       @id @default(autoincrement())
@@ -19,74 +34,85 @@ model Felhasznalok {
   custom_ai_endpoint  String?
   regisztracio_datuma DateTime? @default(now())
 
+  // Értesítési adatok a riasztásokhoz
+  discord_webhook     String?
+  telegram_chat_id    String?
+  preferalt_csatorna  ErtesitesTipus @default(EMAIL)
+
   // Kapcsolatok
-  rss_feedek      FelhasznaloRssFeedek[]
+  hir_forrasok    HirForrasok[] 
   hirek           Hirek[]
   ertesitesek     Ertesitesek[]
   rendszer_naplok RendszerNaplo[]
 }
 
-// --- 3. RSS FORRÁSOK (Saját és Globális) ---
-model FelhasznaloRssFeedek {
+// --- 3. HÍRFORRÁSOK (Általánosítva: RSS, Twitter, Reddit stb. egy helyen) ---
+model HirForrasok {
   id               Int       @id @default(autoincrement())
-  felhasznalo_id   Int? // Ha üres, akkor ez egy globális (mindenki által látott) feed
-  feed_url         String
-  feed_nev         String?
+  felhasznalo_id   Int?      // Ha üres, globális forrás
+  forras_url       String
+  forras_nev       String?
+  tipus            ForrasTipus @default(RSS)
   kategoria        String?
   is_global        Boolean?  @default(false)
+  aktiv            Boolean   @default(true)
   utolso_frissites DateTime?
 
   felhasznalo Felhasznalok? @relation(fields: [felhasznalo_id], references: [id], onDelete: Cascade)
+  hirek       Hirek[]
 }
 
-// --- 4. HÍREK TÁBLA ---
+// --- 4. HÍREK TÁBLA (A gyűjtött adatok központi tárolója) ---
 model Hirek {
   id             Int       @id @default(autoincrement())
   cim            String
-  url            String?
-  tartalom       String?
-  forras         String?
+  url            String?   @unique // @unique kötelező a duplikációk elkerüléséhez!
+  tartalom       String?   @db.Text
   datum          DateTime? @default(now())
   felhasznalo_id Int?
+  forras_id      Int?      
   is_private     Boolean?  @default(false)
+  jelentoz       Boolean   @default(false) // Igaz, ha riasztást kell küldeni
 
   felhasznalo Felhasznalok? @relation(fields: [felhasznalo_id], references: [id], onDelete: SetNull)
+  forras      HirForrasok?  @relation(fields: [forras_id], references: [id])
 
   ai_elemzesek AiElemzesek[]
   ertesitesek  Ertesitesek[]
 }
 
-// --- 5. AI ELEMZÉSEK (CACHE) ---
+// --- 5. AI ELEMZÉSEK (AI modul eredményeinek tárolása) ---
 model AiElemzesek {
-  id              Int       @id @default(autoincrement())
-  hir_id          Int
-  hangulat        String?
-  osszefoglalo    String?
-  kulcsszavak     String[]
-  hasznalt_modell String?
-  elemzes_datuma  DateTime? @default(now())
+  id               Int       @id @default(autoincrement())
+  hir_id           Int
+  hangulat         String?
+  osszefoglalo     String?
+  kulcsszavak      String[]
+  hasznalt_modell  String?
+  elemzes_datuma   DateTime? @default(now())
 
   hir Hirek @relation(fields: [hir_id], references: [id], onDelete: Cascade)
 }
 
-// --- 6. ÉRTESÍTÉSEK NAPLÓJA ---
+// --- 6. ÉRTESÍTÉSEK NAPLÓJA (A kiküldött riasztások követése) ---
 model Ertesitesek {
-  id             Int       @id @default(autoincrement())
+  id             Int             @id @default(autoincrement())
   felhasznalo_id Int
   hir_id         Int?
-  csatorna       String?
-  uzenet         String?
-  elkuldve_ekkor DateTime? @default(now())
+  csatorna       ErtesitesTipus? 
+  uzenet         String?         @db.Text
+  sikeres        Boolean         @default(true)
+  elkuldve_ekkor DateTime?       @default(now())
 
   felhasznalo Felhasznalok @relation(fields: [felhasznalo_id], references: [id], onDelete: Cascade)
   hir         Hirek?       @relation(fields: [hir_id], references: [id])
 }
 
-// --- 7. RENDSZERNAPLÓ (HISTORY / LOGGING) ---
+// --- 7. RENDSZERNAPLÓ (Eseménytörténet és hibák naplózása) ---
 model RendszerNaplo {
   id             Int      @id @default(autoincrement())
   felhasznalo_id Int?
-  esemeny_tipus  String // Pl. "BEJELENTKEZES", "HIBA", "RSS_HOZZAADAS"
+  esemeny_tipus  String 
   leiras         String
   ip_cim         String?
   letrehozva     DateTime @default(now())

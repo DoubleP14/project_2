@@ -3,7 +3,7 @@
 import "dotenv/config"; // Ez legyen az ELSŐ sor!
 import { defineConfig } from "@prisma/config";
 
-// Kézi ellenőrzés a konzolon (opcionális, de segít a hibakeresésben)
+// Kézi ellenőrzés a konzolon
 if (!process.env.DATABASE_URL) {
   console.warn("FIGYELEM: A DATABASE_URL nincs beállítva a környezeti változók között!");
 }
