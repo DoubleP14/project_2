@@ -6,7 +6,7 @@ datasource db {
   provider = "postgresql"
 }
 
-// --- 1. ENUMOK (Típusok beállítása a rugalmas működéshez) ---
+// --- 1. ENUMOK ---
 enum ForrasTipus {
   RSS
   TWITTER
@@ -46,7 +46,7 @@ model Felhasznalok {
   rendszer_naplok RendszerNaplo[]
 }
 
-// --- 3. HÍRFORRÁSOK (Általánosítva: RSS, Twitter, Reddit stb. egy helyen) ---
+// --- 3. HÍRFORRÁSOK ---
 model HirForrasok {
   id               Int       @id @default(autoincrement())
   felhasznalo_id   Int?      // Ha üres, globális forrás
@@ -66,13 +66,13 @@ model HirForrasok {
 model Hirek {
   id             Int       @id @default(autoincrement())
   cim            String
-  url            String?   @unique // @unique kötelező a duplikációk elkerüléséhez!
+  url            String?   @unique 
   tartalom       String?   @db.Text
   datum          DateTime? @default(now())
   felhasznalo_id Int?
   forras_id      Int?      
   is_private     Boolean?  @default(false)
-  jelentoz       Boolean   @default(false) // Igaz, ha riasztást kell küldeni
+  jelentoz       Boolean   @default(false) 
 
   felhasznalo Felhasznalok? @relation(fields: [felhasznalo_id], references: [id], onDelete: SetNull)
   forras      HirForrasok?  @relation(fields: [forras_id], references: [id])
@@ -81,7 +81,7 @@ model Hirek {
   ertesitesek  Ertesitesek[]
 }
 
-// --- 5. AI ELEMZÉSEK (AI modul eredményeinek tárolása) ---
+// --- 5. AI ELEMZÉSEK ---
 model AiElemzesek {
   id               Int       @id @default(autoincrement())
   hir_id           Int
@@ -94,7 +94,7 @@ model AiElemzesek {
   hir Hirek @relation(fields: [hir_id], references: [id], onDelete: Cascade)
 }
 
-// --- 6. ÉRTESÍTÉSEK NAPLÓJA (A kiküldött riasztások követése) ---
+// --- 6. ÉRTESÍTÉSEK NAPLÓJA ---
 model Ertesitesek {
   id             Int             @id @default(autoincrement())
   felhasznalo_id Int
@@ -108,7 +108,7 @@ model Ertesitesek {
   hir         Hirek?       @relation(fields: [hir_id], references: [id])
 }
 
-// --- 7. RENDSZERNAPLÓ (Eseménytörténet és hibák naplózása) ---
+// --- 7. RENDSZERNAPLÓ ---
 model RendszerNaplo {
   id             Int      @id @default(autoincrement())
   felhasznalo_id Int?
