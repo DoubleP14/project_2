@@ -1,3 +1,6 @@
+import * as dotenv from 'dotenv';
+dotenv.config(); 
+
 // src/lib/server/index.ts
 import * as path from "path";
 import { PrismaClient } from "@prisma/client";
