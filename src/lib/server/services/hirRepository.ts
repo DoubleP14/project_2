@@ -36,6 +36,27 @@ export function createHirRepository(prisma: PrismaClient) {
                     jelentoz: hirAdat.jelentoz
                 }
             });
+        },
+
+        // Lekéri azokat a híreket, amikhez még nincs AI elemzés
+        getFeldolgozatlanHirek: async (limit: number = 3) => {
+            return await prisma.hirek.findMany({
+                where: { ai_elemzesek: { none: {} } }, 
+                take: limit,
+                orderBy: { datum: 'desc' }
+            });
+        },
+
+        // Elmenti az AI által készített elemzést az adatbázisba
+        saveAiElemzes: async (hirId: number, osszefoglalo: string, hangulat: string, modellNeve: string) => {
+            return await prisma.aiElemzesek.create({
+                data: {
+                    hir_id: hirId,
+                    osszefoglalo: osszefoglalo,
+                    hangulat: hangulat,
+                    hasznalt_modell: modellNeve // Később itt jön majd be a felhasználó által választott modell!
+                }
+            });
         }
     };
 }
