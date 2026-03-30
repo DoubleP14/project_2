@@ -44,6 +44,7 @@ model Felhasznalok {
   hirek           Hirek[]
   ertesitesek     Ertesitesek[]
   rendszer_naplok RendszerNaplo[]
+  kulcsszavak     FelhasznaloKulcsszavak[]
 }
 
 // --- 3. HÍRFORRÁSOK ---
@@ -62,7 +63,7 @@ model HirForrasok {
   hirek       Hirek[]
 }
 
-// --- 4. HÍREK TÁBLA (A gyűjtött adatok központi tárolója) ---
+// --- 4. HÍREK TÁBLA  ---
 model Hirek {
   id             Int       @id @default(autoincrement())
   cim            String
@@ -118,4 +119,17 @@ model RendszerNaplo {
   letrehozva     DateTime @default(now())
 
   felhasznalo Felhasznalok? @relation(fields: [felhasznalo_id], references: [id], onDelete: SetNull)
+}
+
+// --- 8. FELHASZNÁLÓI KULCSSZAVAK ---
+model FelhasznaloKulcsszavak {
+  id             Int          @id @default(autoincrement())
+  kulcsszo       String       
+  felhasznalo_id Int
+  hozzadas_ideje DateTime     @default(now())
+
+  felhasznalo    Felhasznalok @relation(fields: [felhasznalo_id], references: [id], onDelete: Cascade)
+
+  // Biztosítja, hogy egy user ne vehesse fel kétszer ugyanazt a szót
+  @@unique([felhasznalo_id, kulcsszo]) 
 }

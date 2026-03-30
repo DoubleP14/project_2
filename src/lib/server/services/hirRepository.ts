@@ -20,11 +20,14 @@ export function createHirRepository(prisma: PrismaClient) {
             });
         },
 
-        // 3. Lementi a hírt, ha az még nem létezik az adatbázisban
+        // 3. Lementi a hírt, ha új, vagy frissíti a címét, ha már létezik
         hirMenteseHaUj: async (hirAdat: any) => {
             return await prisma.hirek.upsert({
                 where: { url: hirAdat.url },
-                update: {}, 
+                update: {
+                    cim: hirAdat.cim,           
+                    jelentoz: hirAdat.jelentoz  
+                }, 
                 create: {
                     cim: hirAdat.cim,
                     url: hirAdat.url,
