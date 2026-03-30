@@ -13,6 +13,10 @@ export function createHirGyujtoModule(services: Services) {
         let feldolgozottCikkek = 0;
 
         for (const item of feed.items) {
+            // 1. URL MEGTISZTÍTÁSA: Levág mindent, ami a '?' után van (követőkódok eltávolítása)
+            const nyersUrl = item.link || '';
+            const tisztaUrl = nyersUrl.split('?')[0];
+
             // Üzleti logika
             const cikkSzovege = (item.title + " " + item.contentSnippet).toLowerCase();
             const jelentoz = cikkSzovege.includes('válság') || cikkSzovege.includes('katasztrófa');
@@ -20,7 +24,7 @@ export function createHirGyujtoModule(services: Services) {
             // Adat mentése 
             await services.hirRepo.hirMenteseHaUj({
                 cim: item.title || 'Nincs cím',
-                url: item.link || '',
+                url: tisztaUrl,
                 tartalom: item.contentSnippet || item.content || '',
                 datum: item.pubDate ? new Date(item.pubDate) : new Date(),
                 forras_id: forras.id,
