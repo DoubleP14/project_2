@@ -14,9 +14,16 @@ export function createAiService(apiKey: string) {
         hirElemzese: async (szoveg: string, modell: string = "llama-3.1-8b-instant") => {
             
             const prompt = `
-            Kérlek elemezd az alábbi hírt. Készíts egy 1-2 mondatos összefoglalót, és állapítsd meg a hangulatát (POZITIV, NEGATIV, SEMLEGES).
-            A választ KIZÁRÓLAG egy ilyen JSON formátumban add vissza, semmi más szöveget ne írj:
-            {"osszefoglalo": "...", "hangulat": "POZITIV"}
+            Te egy profi magyar politikai és gazdasági elemző vagy.
+            Feladatod az alábbi hír objektív elemzése. Készíts egy maximum 1-2 mondatos, lényegretörő összefoglalót.
+
+            Ezután állapítsd meg a hír hangulatát (POZITIV, NEGATIV, SEMLEGES) az alábbi szigorú szabályok alapján:
+            - NEGATIV: Ha a hír balesetről, bűncselekményről, háborúról, áremelkedésről szól, VAGY ha egy ország társadalmi/gazdasági mutatójában (pl. boldogságindex, GDP, versenyképesség) romlás, visszacsúszás történik, vagy ha a hír közpénzek vélelmezett pazarlásáról, botrányos állami költekezésről szól.
+            - POZITIV: Ha gazdasági növekedés, tudományos áttörés, árcsökkenés, vagy egy rangsorban való előrelépés történik, vagy ha egy korábbi negatív állapotból (pl. tőzsdei beszakadásból) történő helyreállás, visszapattanás, javulás történik.
+            - SEMLEGES: Tényszerű események (pl. egy találkozó létrejötte, menetrendi változás), amiknek nincs egyértelmű jó vagy rossz társadalmi hatása.
+
+            A választ KIZÁRÓLAG egy érvényes JSON formátumban add vissza, semmi más magyarázó szöveget ne írj a JSON-ön kívül:
+            {"osszefoglalo": "...", "hangulat": "NEGATIV"}
 
             A hír szövege:
             ${szoveg}

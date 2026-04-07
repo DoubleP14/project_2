@@ -49,14 +49,16 @@ model Felhasznalok {
 
 // --- 3. HÍRFORRÁSOK ---
 model HirForrasok {
-  id               Int       @id @default(autoincrement())
-  felhasznalo_id   Int?      // Ha üres, globális forrás
-  forras_url       String
+  id               Int         @id @default(autoincrement())
+  felhasznalo_id   Int?        // Ha üres, globális forrás
+  forras_url       String      // A főoldal címe (pl. https://gamer365.hu)
+  rss_url          String?     // A pontos RSS link (pl. https://gamer365.hu/rss)
   forras_nev       String?
   tipus            ForrasTipus @default(RSS)
   kategoria        String?
-  is_global        Boolean?  @default(false)
-  aktiv            Boolean   @default(true)
+  is_global        Boolean?    @default(false)
+  is_own_source    Boolean     @default(false) //Igaz, ha ez a Te saját oldalad!
+  aktiv            Boolean     @default(true)
   utolso_frissites DateTime?
 
   felhasznalo Felhasznalok? @relation(fields: [felhasznalo_id], references: [id], onDelete: Cascade)
@@ -74,6 +76,7 @@ model Hirek {
   forras_id      Int?      
   is_private     Boolean?  @default(false)
   jelentoz       Boolean   @default(false) 
+  cluster_id     String?   // Ezzel köti össze az "Atombomba" híreket!
 
   felhasznalo Felhasznalok? @relation(fields: [felhasznalo_id], references: [id], onDelete: SetNull)
   forras      HirForrasok?  @relation(fields: [forras_id], references: [id])
