@@ -1,8 +1,7 @@
 <script lang="ts">
-    import { Card, Badge, Button, Input, Helper } from 'flowbite-svelte';
+    import { Card, Badge, Button, Input, Helper, Spinner } from 'flowbite-svelte';
 
     export let data;
-    
     export let form: any; 
 
     function vanEgyezes(szoveg: string | null, kulcsszavak: any[]) {
@@ -11,12 +10,48 @@
         const szovegLower = szoveg.toLowerCase();
         return kulcsszavak.some(k => szovegLower.includes(k.kulcsszo.toLowerCase()));
     }
+
+    // --- Kézi frissítés logikája ---
+    let isSyncing = false;
+
+    async function keziFrissites() {
+        isSyncing = true; // Pörgő animáció bekapcsolása
+        
+        try {
+            const response = await fetch('/api/news/sync', { method: 'GET' });
+            
+            if (response.ok) {
+                // Sikeres frissítés esetén újratölti az oldalt a friss kártyákhoz
+                window.location.reload(); 
+            } else {
+                // Ha a szerver hibaüzenetet dobott (pl. Cooldown lakat)
+                const resData = await response.json();
+                alert(`${resData.uzenet || 'Hiba történt a frissítés során!'}`);
+            }
+        } catch (error) {
+            console.error('Hiba a hálózati kérésben:', error);
+            alert('Nem sikerült elérni a szervert.');
+        } finally {
+            isSyncing = false; // Animáció kikapcsolása
+        }
+    }
 </script>
 
 <div class="container mx-auto p-4 mt-8">
-    <h1 class="text-4xl font-extrabold mb-8 text-gray-900 dark:text-white text-center">
-        <span class="text-blue-600 dark:text-blue-500">Hírelemző</span>
-    </h1>
+    
+    <div class="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
+        <h1 class="text-4xl font-extrabold text-gray-900 dark:text-white text-center sm:text-left">
+            <span class="text-blue-600 dark:text-blue-500">Hírelemző</span>
+        </h1>
+        
+        <Button on:click={keziFrissites} disabled={isSyncing} color="alternative" class="font-medium shadow-sm">
+            {#if isSyncing}
+                <Spinner class="me-2" size="4" /> Hírek letöltése és AI elemzés...
+            {:else}
+                Kézi Frissítés (Sync)
+            {/if}
+        </Button>
+    </div>
 
     <div class="mb-10 p-6 bg-gray-50 dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
         <h2 class="text-2xl font-bold mb-4 text-gray-900 dark:text-white">Kiemelt témáim</h2>
@@ -45,6 +80,7 @@
             {/each}
         </div>
     </div>
+
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         
         {#each data.cikkek as elemzes}
@@ -83,7 +119,7 @@
                     </div>
 
                     <Button href={elemzes.hir.url ?? '#'} target="_blank" color="alternative" class="w-full mt-4">
-                        Eredeti cikk elolvasása a Telexen
+                        Eredeti cikk elolvasása: {elemzes.hir.forras?.forras_nev || 'Eredeti oldalon'}
                     </Button>
                     
                 </Card>
