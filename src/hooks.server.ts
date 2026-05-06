@@ -3,7 +3,7 @@ import cron from 'node-cron';
 import type { Handle } from '@sveltejs/kit';
 import jwt from 'jsonwebtoken';
 import { JWT_SECRET } from '$env/static/private';
-import { modules } from '$lib/server/index'; 
+import { modules, services } from '$lib/server/index'; 
 
 // ==========================================
 // 1. ROBOTPILÓTA (CRON JOB)
@@ -12,7 +12,15 @@ if (!(globalThis as any).__robotPilotaInditva) {
     cron.schedule('0 * * * *', async () => {
         console.log('\n[CRON] Robotpilóta ébred: Hírek automatikus letöltése ÉS AI elemzése indul...');
         try {
-            await modules.hirGyujto.osszesForrasFrissitese();
+            // 1. Lekéri az összes usert az adatbázisból
+            const users = await services.db.felhasznalok.findMany();
+
+            // 2. Minden usernek lefrissíti a forrásait a SAJÁT API kulcsaival! (BYOK)
+            for (const user of users) {
+                await modules.hirGyujto.osszesForrasFrissitese(user.id);
+            }
+
+            // 3. AI klaszterezés
             await modules.aiElemzo.ujHirekFeldolgozasa();
             console.log('[CRON] Automatikus frissítés és AI klaszterezés befejeződött!\n');
         } catch (error) {
@@ -21,7 +29,7 @@ if (!(globalThis as any).__robotPilotaInditva) {
     });
 
     (globalThis as any).__robotPilotaInditva = true;
-    console.log('🚀 Robotpilóta (Cron) SIKERESEN élesítve. Óránként elemez.');
+    console.log('Robotpilóta (Cron) SIKERESEN élesítve. Óránként elemez.');
 }
 
 // ==========================================
