@@ -55,19 +55,23 @@
         </Card>
     </div>
 
+    <!-- AKTÍV HÍRFORRÁSOK KÁRTYA -->
     <Card size="xl" class="shadow-lg dark:bg-gray-800 w-full max-w-none">
         <h5 class="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
             <NewspaperSolid class="w-5 h-5" /> Aktív Hírforrások
         </h5>
         
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <!-- GRID HELYETT FLEX-WRAP -->
+        <div class="flex flex-wrap gap-4">
             {#each data.forrasok as forras}
-                <div class="p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 flex justify-between items-center">
+                <!-- FLEX-1 és MIN-W: Hagyja megnőni, de nem engedi kicsire összemenni -->
+                <div class="flex-1 min-w-[280px] p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 flex justify-between items-center transition-all hover:shadow-md">
                     <div>
                         <p class="font-bold text-gray-900 dark:text-white">{forras.forras_nev || 'Ismeretlen forrás'}</p>
                         <a href={forras.forras_url} target="_blank" class="text-xs text-blue-500 hover:underline">{forras.forras_url}</a>
                     </div>
-                    <span class="bg-blue-100 text-blue-800 text-sm font-medium px-2.5 py-0.5 rounded dark:bg-blue-900 dark:text-blue-300">
+                    <!-- WHITESPACE-NOWRAP: Hogy a "100 hír" véletlenül se törjön 2 sorba -->
+                    <span class="whitespace-nowrap bg-blue-100 text-blue-800 text-sm font-medium px-2.5 py-0.5 rounded dark:bg-blue-900 dark:text-blue-300 ml-3">
                         {forras._count.hirek} hír
                     </span>
                 </div>

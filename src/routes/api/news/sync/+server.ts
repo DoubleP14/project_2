@@ -37,7 +37,7 @@ export async function GET({ locals }) {
     try {
         console.log(`\n[KÉZI SYNC] Frissítés indítva a(z) ${userId}. felhasználó által...`);
         
-        await modules.hirGyujto.osszesForrasFrissitese();
+        await modules.hirGyujto.osszesForrasFrissitese(userId);
 
         await modules.aiElemzo.ujHirekFeldolgozasa(userId);
 
