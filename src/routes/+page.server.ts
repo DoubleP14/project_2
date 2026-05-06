@@ -1,25 +1,51 @@
 // src/routes/+page.server.ts
 import { services } from '$lib/server';
-import { fail, redirect } from '@sveltejs/kit'; // Behoztuk a redirect-et
+import { fail, redirect } from '@sveltejs/kit';
 
 export const load = async ({ locals }) => {
     // 1. AJTÓNÁLLÓ (GUARD)
-    // Megnézi, van-e bejelentkezett user a locals-ban.
-    // Ezt a hooks.server.ts-nek kell kitöltenie korábban!
-    const user = (locals as any).user;
+    const user = locals.user; 
 
     if (!user) {
-        // Ha nincs user, nincs hírnézegetés ==> bejelentkezés!
         throw redirect(303, '/login');
     }
 
     const prisma = services.db;
-    const userId = user.id; // Itt már biztos benne, hogy van ID
+    const userId = user.id;
 
-    // 2. Elemzések lekérése (Csak ha be van jelentkezve)
+    // 2. KULCSSZAVAK LEKÉRÉSE A SZŰRÉSHEZ
+    const kulcsszavakDB = await prisma.felhasznaloKulcsszavak.findMany({
+        where: { felhasznalo_id: userId },
+        orderBy: { hozzadas_ideje: 'asc' }
+    });
+    
+    // Kicsomagolja a szavakat egy sima tömbbe (pl. ['politika', 'gta'])
+    const userKulcsszavak = kulcsszavakDB.map(k => k.kulcsszo);
+
+    // 3. Keresés kiterjesztése
+    let aiElemzesFeltetel: any = {
+        hir: {
+            forras: { felhasznalo_id: userId }
+        }
+    };
+
+    // Ha vett fel kulcsszavakat, akkor szűr azokra is, mindenhol!
+    if (userKulcsszavak.length > 0) {
+        aiElemzesFeltetel.OR = userKulcsszavak.flatMap(szo => [
+            // Keresés az eredeti hír címében
+            { hir: { cim: { contains: szo, mode: 'insensitive' } } },
+            // Keresés az eredeti hír tartalmában
+            { hir: { tartalom: { contains: szo, mode: 'insensitive' } } },
+            // ÚJ: Keresés az AI által írt összefoglalóban (Itt már sokkal nagyobb az esély a találatra!)
+            { osszefoglalo: { contains: szo, mode: 'insensitive' } }
+        ]);
+    }
+
+    // 4. ELEMZÉSEK LEKÉRÉSE SZŰRŐVEL
     const elemzesek = await prisma.aiElemzesek.findMany({
+        where: aiElemzesFeltetel,
         orderBy: { elemzes_datuma: 'desc' },
-        take: 12,
+        take: 50,
         include: {
             hir: {
                 include: {
@@ -28,23 +54,16 @@ export const load = async ({ locals }) => {
             } 
         }
     });
-    
-    // 3. Kulcsszavak lekérése (Kifejezetten a bejelentkezett userhez)
-    const kulcsszavak = await prisma.felhasznaloKulcsszavak.findMany({
-        where: { felhasznalo_id: userId },
-        orderBy: { hozzadas_ideje: 'asc' }
-    });
 
     return {
         cikkek: elemzesek,
-        kulcsszavak: kulcsszavak,
-        user: user 
+        kulcsszavak: kulcsszavakDB
     };
 };
 
 export const actions = {
     addKeyword: async ({ request, locals }) => {
-        const user = (locals as any).user;
+        const user = locals.user;
         if (!user) throw redirect(303, '/login');
 
         const prisma = services.db;
@@ -70,7 +89,7 @@ export const actions = {
     },
 
     deleteKeyword: async ({ request, locals }) => {
-        const user = (locals as any).user;
+        const user = locals.user;
         if (!user) throw redirect(303, '/login');
 
         const prisma = services.db;
@@ -78,11 +97,10 @@ export const actions = {
         const id = Number(formData.get('id'));
 
         try {
-            // Extra biztonság: csak akkor törölhet, ha az övé a kulcsszó!
             await prisma.felhasznaloKulcsszavak.delete({
                 where: { 
                     id: id,
-                    felhasznalo_id: user.id // Így más kulcsszavát nem tudja törölni az ID eltalálásával
+                    felhasznalo_id: user.id
                 }
             });
             return { success: true };

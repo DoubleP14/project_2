@@ -23,18 +23,18 @@ export type Config = {
     ai: {
         apiKey: string; 
     };
+    youtube: {
+        apiKey: string;
+    };
 };
 
 const projectRoot = path.resolve(process.cwd());
 const env = new Env(projectRoot);
 
-const rawConfig: Config = {
-    database: {
-        connectionString: env.string("DATABASE_URL")
-    },
-    ai: {
-        apiKey: env.string("OPENAI_API_KEY") 
-    }
+export const rawConfig: Config = {
+    database: { connectionString: env.string("DATABASE_URL") },
+    ai: { apiKey: env.string("OPENAI_API_KEY") },
+    youtube: { apiKey: env.string("YOUTUBE_API_KEY") }
 };
 
 // --- 2. SERVICES RÉTEG ---

@@ -1,18 +1,24 @@
 // src/lib/server/services/hirRepository.ts
 import type { PrismaClient } from "@prisma/client";
 
-
-// Megkapja a Prisma klienst, és visszaad egy objektumot a lehetséges műveletekkel.
 export function createHirRepository(prisma: PrismaClient) {
     return {
-        // 1. Lekéri az összes aktív forrást
         getAktivForrasok: async () => {
             return await prisma.hirForrasok.findMany({
                 where: { aktiv: true }
             });
         },
 
-        // 2. Frissíti a forrás utolsó lekérdezési idejét
+        getFelhasznaloKulcsok: async (userId: number) => {
+            return await prisma.felhasznalok.findUnique({
+                where: { id: userId },
+                select: { 
+                    youtube_api_key: true, 
+                    api_key: true 
+                }
+            });
+        },
+
         updateUtolsoFrissites: async (id: number) => {
             return await prisma.hirForrasok.update({
                 where: { id: id },
@@ -20,28 +26,39 @@ export function createHirRepository(prisma: PrismaClient) {
             });
         },
 
-        // 3. Lementi a hírt, ha új, vagy frissíti a címét, ha már létezik
         hirMenteseHaUj: async (hirAdat: any) => {
-            return await prisma.hirek.upsert({
-                where: { url: hirAdat.url },
-                update: {
-                    cim: hirAdat.cim,           
-                    jelentoz: hirAdat.jelentoz  
-                }, 
-                create: {
-                    cim: hirAdat.cim,
+
+            const letezoHir = await prisma.hirek.findFirst({
+                where: {
                     url: hirAdat.url,
-                    tartalom: hirAdat.tartalom,
-                    datum: hirAdat.datum,
-                    forras_id: hirAdat.forras_id,
-                    felhasznalo_id: hirAdat.felhasznalo_id,
-                    is_private: hirAdat.is_private,
-                    jelentoz: hirAdat.jelentoz
+                    felhasznalo_id: hirAdat.felhasznalo_id 
                 }
             });
+
+            if (letezoHir) {
+                return await prisma.hirek.update({
+                    where: { id: letezoHir.id },
+                    data: {
+                        cim: hirAdat.cim,           
+                        jelentoz: hirAdat.jelentoz  
+                    }
+                });
+            } else {
+                return await prisma.hirek.create({
+                    data: {
+                        cim: hirAdat.cim,
+                        url: hirAdat.url,
+                        tartalom: hirAdat.tartalom,
+                        datum: hirAdat.datum,
+                        forras_id: hirAdat.forras_id,
+                        felhasznalo_id: hirAdat.felhasznalo_id, 
+                        is_private: hirAdat.is_private,
+                        jelentoz: hirAdat.jelentoz
+                    }
+                });
+            }
         },
 
-        // Lekéri azokat a híreket, amikhez még nincs AI elemzés
         getFeldolgozatlanHirek: async (limit: number = 3) => {
             return await prisma.hirek.findMany({
                 where: { ai_elemzesek: { none: {} } }, 
@@ -50,14 +67,13 @@ export function createHirRepository(prisma: PrismaClient) {
             });
         },
 
-        // Elmenti az AI által készített elemzést az adatbázisba
         saveAiElemzes: async (hirId: number, osszefoglalo: string, hangulat: string, modellNeve: string) => {
             return await prisma.aiElemzesek.create({
                 data: {
                     hir_id: hirId,
                     osszefoglalo: osszefoglalo,
                     hangulat: hangulat,
-                    hasznalt_modell: modellNeve // Később itt jön majd be a felhasználó által választott modell!
+                    hasznalt_modell: modellNeve 
                 }
             });
         }
