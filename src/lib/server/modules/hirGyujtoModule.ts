@@ -45,49 +45,8 @@ export function createHirGyujtoModule(services: Services) {
         console.log(`- ${forras.forras_nev} feldolgozva (${feldolgozottCikkek} cikk/poszt behúzva).`);
     };
 
-    // --- 2. TWITTER (X) VARÁZSLÓ ---
-    const twitterFeldolgozas = async (forras: any) => {
-        const usernameMatch = forras.forras_url.match(/twitter\.com\/([a-zA-Z0-9_]+)|x\.com\/([a-zA-Z0-9_]+)/);
-        const username = usernameMatch ? (usernameMatch[1] || usernameMatch[2]) : null;
-
-        if (!username) {
-            console.log(`Hibás Twitter URL: ${forras.forras_url}`);
-            return;
-        }
-
-        console.log(`[Twitter Híd] Tweetek lekérése innen: @${username}...`);
-
-        const szerverek = [
-            `https://nitter.poast.org/${username}/rss`,
-            `https://nitter.privacydev.net/${username}/rss`,
-            `https://rsshub.app/twitter/user/${username}`
-        ];
-
-        let sikeres = false;
-
-        for (const url of szerverek) {
-            if (sikeres) break;
-            
-            try {
-                const ideiglenesForras = { ...forras, rss_url: url };
-                await rssFeldolgozas(ideiglenesForras);
-                
-                sikeres = true; 
-            } catch (error) {
-                console.log(`  -> A ${url} kapu zárva, próbálkozás a következővel...`);
-            }
-        }
-
-        if (!sikeres) {
-            console.log(`[Twitter Híd] Sajnos jelenleg az összes ingyenes kapu blokkolva van @${username} számára.`);
-        }
-    };
-
-    // --- 3. YOUTUBE VARÁZSLÓ (BYOK + Tisztító) ---
-    // Kér egy második paramétert is, a felhasználó saját kulcsát!
+    // --- 2. YOUTUBE VARÁZSLÓ (BYOK + Tisztító) ---
     const youtubeFeldolgozas = async (forras: any, userYoutubeKey: string | null) => {
-        //KULCSVÁLASZTÓ:
-        // Ha van sajátja, azt használja (userYoutubeKey), ha nincs, akkor a rendszerét (.env)!
         const YOUTUBE_API_KEY = userYoutubeKey || rawConfig.youtube.apiKey; 
         
         if (!YOUTUBE_API_KEY) {
@@ -97,14 +56,11 @@ export function createHirGyujtoModule(services: Services) {
 
         let urlForChannelApi = '';
         
-        // 1. Megnézi, milyen formátumú a link (modern @handle vagy régi /channel/ID)
         if (forras.forras_url.includes('@')) {
             const handle = forras.forras_url.split('@')[1].split('?')[0].split('/')[0];
-            // Lekéri a csatornát a @név alapján:
             urlForChannelApi = `https://www.googleapis.com/youtube/v3/channels?part=contentDetails&forHandle=@${handle}&key=${YOUTUBE_API_KEY}`;
         } else if (forras.forras_url.includes('/channel/')) {
             const channelId = forras.forras_url.split('/channel/')[1].split('?')[0].split('/')[0];
-            // Lekéri a csatornát az ID alapján:
             urlForChannelApi = `https://www.googleapis.com/youtube/v3/channels?part=contentDetails&id=${channelId}&key=${YOUTUBE_API_KEY}`;
         } else {
             console.log(`[YouTube API] Hiba: A linknek '@' jelet vagy '/channel/' részt kell tartalmaznia: ${forras.forras_url}`);
@@ -113,7 +69,6 @@ export function createHirGyujtoModule(services: Services) {
 
         console.log(`[YouTube API] Csatorna adatainak lekérése a(z) ${forras.forras_nev} forráshoz...`);
         try {
-            // 1: Megkérdezi a Google-t, hogy mi a hivatalos "Feltöltések" lista
             const channelResponse = await fetch(urlForChannelApi);
             const channelData = await channelResponse.json();
 
@@ -123,10 +78,8 @@ export function createHirGyujtoModule(services: Services) {
                 return;
             }
 
-            // Kinyeri a hivatalos Feltöltések listát 
             const playlistId = channelData.items[0].contentDetails.relatedPlaylists.uploads;
 
-            // 2: Videók letöltése a listából
             const response = await fetch(`https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${playlistId}&maxResults=5&key=${YOUTUBE_API_KEY}`);
             const data = await response.json();
 
@@ -141,7 +94,8 @@ export function createHirGyujtoModule(services: Services) {
                     // --- TARTALOM TISZTÍTÁSA ---
                     let tisztaTartalom = item.snippet.description || "";
                     
-                    const vagasiPontok = [
+                    // Alapértelmezett vágópontok
+                    let vagasiPontok = [
                         '🟪 Közös veled', 
                         'Közös veled', 
                         'Támogasd te is', 
@@ -150,8 +104,13 @@ export function createHirGyujtoModule(services: Services) {
                         'Kövess minket'
                     ];
                     
+                    // Ha a felhasználó megadott egyedi szűrőket ehhez a forráshoz, akkor azokat használja!
+                    if (forras.szuro_kifejezesek) {
+                        vagasiPontok = forras.szuro_kifejezesek.split(',').map((szo: string) => szo.trim());
+                    }
+                    
                     for (const pont of vagasiPontok) {
-                        if (tisztaTartalom.includes(pont)) {
+                        if (pont && tisztaTartalom.includes(pont)) {
                             tisztaTartalom = tisztaTartalom.split(pont)[0].trim();
                         }
                     }
@@ -187,7 +146,6 @@ export function createHirGyujtoModule(services: Services) {
             let forrasok = await services.hirRepo.getAktivForrasok();
             forrasok = forrasok.filter((forras: any) => forras.felhasznalo_id === userId);
             
-            // --- BYOK: KULCSOK LEKÉRÉSE AZ ADATBÁZISBÓL ---
             const userKulcsok = await services.hirRepo.getFelhasznaloKulcsok(userId);
             const userYoutubeKey = userKulcsok?.youtube_api_key || null;
 
@@ -195,13 +153,9 @@ export function createHirGyujtoModule(services: Services) {
 
             for (const forras of forrasok) {
                 try {
-                    // AZ OKOS ELÁGAZÁS (ROBOTPILÓTA)
                     if (forras.tipus === 'RSS') {
                         await rssFeldolgozas(forras);
-                    } else if (forras.tipus === 'TWITTER') {
-                        await twitterFeldolgozas(forras);
                     } else if (forras.tipus === 'YOUTUBE') {
-                        // ITT ADJA ÁT A PRIVÁT KULCSOT 
                         await youtubeFeldolgozas(forras, userYoutubeKey);
                     } else {
                         console.log(`Ismeretlen forrás típus: ${forras.tipus}`);

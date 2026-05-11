@@ -107,7 +107,10 @@ export const actions: Actions = {
         const rss_url = formData.get('rss_url')?.toString().trim() || null;
         const is_own_source = formData.get('is_own_source') === 'true';
         
-        const tipus = (formData.get('tipus')?.toString() || 'RSS') as "RSS" | "YOUTUBE" | "TWITTER";
+        // A felhasználó által megadott dinamikus szűrő kifejezések kinyerése
+        const szuro_kifejezesek = formData.get('szuro_kifejezesek')?.toString().trim() || null;
+        
+        const tipus = (formData.get('tipus')?.toString() || 'RSS') as "RSS" | "YOUTUBE";
 
         if (!forras_nev || !forras_url) {
             return fail(400, { message: 'A név és az URL megadása kötelező!' });
@@ -121,7 +124,8 @@ export const actions: Actions = {
                     forras_url: forras_url,
                     rss_url: rss_url,
                     is_own_source: is_own_source,
-                    tipus: tipus 
+                    tipus: tipus,
+                    szuro_kifejezesek: szuro_kifejezesek
                 }
             });
             return { success: true, message: 'Forrás sikeresen hozzáadva!' };
