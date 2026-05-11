@@ -1,7 +1,7 @@
 <script lang="ts">
     import { enhance } from '$app/forms'; 
     import { Card, Input, Label, Button, Alert, Select, Toggle, Badge } from 'flowbite-svelte';
-    import { InfoCircleSolid, LockSolid, BellSolid, GlobeSolid } from 'flowbite-svelte-icons';
+    import { InfoCircleSolid, LockSolid, BellSolid, GlobeSolid, FilterSolid } from 'flowbite-svelte-icons';
 
     export let data;
     export let form;
@@ -24,8 +24,7 @@
     // Legördülő opciók a Forrás típusához
     let sourceTypes = [
         { value: 'RSS', name: 'Hagyományos Weboldal (RSS)' },
-        { value: 'YOUTUBE', name: 'YouTube Csatorna' },
-        { value: 'TWITTER', name: 'Twitter / X Profil' }
+        { value: 'YOUTUBE', name: 'YouTube Csatorna' }
     ];
 
     // Alapértelmezett értékek beállítása
@@ -78,7 +77,6 @@
                         />
                     </div>
                     
-                    <!-- ÚJ: YouTube API Kulcs -->
                     <div class="md:col-span-2 mt-2">
                         <Label for="youtube_api_key" class="mb-2 flex items-center gap-2">
                             <LockSolid class="w-4 h-4 text-gray-500" /> YouTube API Kulcs
@@ -143,38 +141,43 @@
                 <GlobeSolid class="w-5 h-5 text-green-500" /> Figyelt Hírforrások
             </h3>
             <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">
-                Itt adhatod meg azokat az újságokat, csatornákat vagy profilokat, amiket a rendszernek figyelnie kell.
+                Itesszük ki azokat a forrásokat, amiket a rendszer figyel. A zöld keret jelzi a saját forrásodat.
             </p>
 
             {#if data.forrasok && data.forrasok.length > 0}
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
                     {#each data.forrasok as forras}
-                        <div class="flex justify-between items-center p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border {forras.is_own_source ? 'border-green-500' : 'border-gray-200 dark:border-gray-600'} shadow-sm">
-                            <div class="overflow-hidden">
-                                <div class="flex items-center gap-2 mb-1">
-                                    <p class="font-bold text-gray-900 dark:text-white truncate">{forras.forras_nev}</p>
-                                    
-                                    <!-- Dinamikus Badge a forrás típusához -->
-                                    {#if forras.tipus === 'YOUTUBE'}
-                                        <Badge color="red" size="xs">YouTube</Badge>
-                                    {:else if forras.tipus === 'TWITTER'}
-                                        <Badge color="blue" size="xs">Twitter</Badge>
-                                    {:else}
-                                        <Badge color="dark" size="xs">RSS</Badge>
-                                    {/if}
-
-                                    {#if forras.is_own_source}
-                                        <Badge color="green" size="xs">Saját</Badge>
-                                    {/if}
+                        <div class="flex flex-col p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border {forras.is_own_source ? 'border-green-500' : 'border-gray-200 dark:border-gray-600'} shadow-sm">
+                            <div class="flex justify-between items-start mb-2">
+                                <div class="overflow-hidden">
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <p class="font-bold text-gray-900 dark:text-white truncate">{forras.forras_nev}</p>
+                                        {#if forras.tipus === 'YOUTUBE'}<Badge color="red" size="xs">YouTube</Badge>
+                                        {:else}<Badge color="dark" size="xs">RSS</Badge>{/if}
+                                        {#if forras.is_own_source}<Badge color="green" size="xs">Saját</Badge>{/if}
+                                    </div>
+                                    <a href={forras.forras_url} target="_blank" class="text-xs text-blue-600 dark:text-blue-400 hover:underline truncate block">
+                                        {forras.forras_url}
+                                    </a>
                                 </div>
-                                <a href={forras.forras_url} target="_blank" class="text-xs text-blue-600 dark:text-blue-400 hover:underline truncate block">
-                                    {forras.forras_url}
-                                </a>
+                                <form method="POST" action="?/deleteSource" use:enhance>
+                                    <input type="hidden" name="id" value={forras.id} />
+                                    <Button type="submit" color="red" size="xs" outline>Törlés</Button>
+                                </form>
                             </div>
-                            <form method="POST" action="?/deleteSource" use:enhance>
-                                <input type="hidden" name="id" value={forras.id} />
-                                <Button type="submit" color="red" size="xs" outline class="ml-2">Törlés</Button>
-                            </form>
+
+                            {#if forras.szuro_kifejezesek}
+                                <div class="mt-2 pt-2 border-t border-gray-200 dark:border-gray-600">
+                                    <p class="text-[10px] uppercase font-bold text-gray-500 mb-1 flex items-center gap-1">
+                                        <FilterSolid class="w-3 h-3" /> Aktív szűrők:
+                                    </p>
+                                    <div class="flex flex-wrap gap-1">
+                                        {#each forras.szuro_kifejezesek.split(',') as filter}
+                                            <Badge color="indigo" size="xs" outline>{filter.trim()}</Badge>
+                                        {/each}
+                                    </div>
+                                </div>
+                            {/if}
                         </div>
                     {/each}
                 </div>
@@ -188,14 +191,11 @@
                 <h4 class="font-semibold text-gray-900 dark:text-white mb-4">Új forrás hozzáadása</h4>
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                    
-                    <!-- Típus választó -->
                     <div class="md:col-span-2">
                         <Label for="tipus" class="mb-2">Forrás Típusa</Label>
                         <Select id="tipus" name="tipus" items={sourceTypes} bind:value={selectedSourceType} />
                     </div>
 
-                    <!-- Dinamikusan változó címkék a típus alapján -->
                     <div>
                         <Label for="forras_nev" class="mb-2">
                             {#if selectedSourceType === 'RSS'}Forrás Neve (pl. Telex)
@@ -208,13 +208,12 @@
                     <div>
                         <Label for="forras_url" class="mb-2">
                             {#if selectedSourceType === 'RSS'}Weboldal URL-je
-                            {:else if selectedSourceType === 'YOUTUBE'}Csatorna link (pl. youtube.com/@Partizan)
-                            {:else}Twitter URL (pl. x.com/elonmusk){/if}
+                            {:else}Csatorna link (pl. youtube.com/@Partizan)
+                            {/if}
                         </Label>
                         <Input type="url" id="forras_url" name="forras_url" required placeholder="https://..." />
                     </div>
                     
-                    <!-- RSS URL bemenet csak akkor jelenik meg, ha RSS a típus -->
                     {#if selectedSourceType === 'RSS'}
                         <div class="md:col-span-2 animate-fade-in">
                             <Label for="rss_url" class="mb-2">
@@ -224,6 +223,14 @@
                             <Input type="url" id="rss_url" name="rss_url" placeholder="https://telex.hu/rss" />
                         </div>
                     {/if}
+
+                    <div class="md:col-span-2 animate-fade-in">
+                        <Label for="szuro_kifejezesek" class="mb-2">Szűrendő szlogenek / Emojik (opcionális)</Label>
+                        <Input id="szuro_kifejezesek" name="szuro_kifejezesek" placeholder="pl.: 🟩, Támogasd te is" />
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            Vesszővel válaszd el a szavakat. Ennél a szónál a rendszer elvágja a szöveget, hogy az AI ne kapja meg a szemetet.
+                        </p>
+                    </div>
 
                     <div class="md:col-span-2 mt-2 bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
                         <Toggle bind:checked={isOwnSourceChecked} color="green" class="font-medium text-gray-900 dark:text-gray-300">
