@@ -200,7 +200,7 @@
                         <Label for="forras_nev" class="mb-2">
                             {#if selectedSourceType === 'RSS'}Forrás Neve (pl. Telex)
                             {:else if selectedSourceType === 'YOUTUBE'}Csatorna Neve (pl. Partizán)
-                            {:else}Profil Neve (pl. Elon Musk){/if}
+                            {:else}Profil Neve (pl. Személy neve){/if}
                         </Label>
                         <Input type="text" id="forras_nev" name="forras_nev" required placeholder="Név megadása..." />
                     </div>
