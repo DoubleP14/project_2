@@ -22,10 +22,11 @@ export const load = async ({ locals }) => {
     // Kicsomagolja a szavakat egy sima tömbbe (pl. ['politika', 'gta'])
     const userKulcsszavak = kulcsszavakDB.map(k => k.kulcsszo);
 
-    // 3. Keresés kiterjesztése
+    // 3. Keresés kiterjesztése ÉS Soft Delete szűrés
     let aiElemzesFeltetel: any = {
         hir: {
-            forras: { felhasznalo_id: userId }
+            forras: { felhasznalo_id: userId },
+            archivalt: false //
         }
     };
 
@@ -36,7 +37,7 @@ export const load = async ({ locals }) => {
             { hir: { cim: { contains: szo, mode: 'insensitive' } } },
             // Keresés az eredeti hír tartalmában
             { hir: { tartalom: { contains: szo, mode: 'insensitive' } } },
-            // ÚJ: Keresés az AI által írt összefoglalóban (Itt már sokkal nagyobb az esély a találatra!)
+            // Keresés az AI által írt összefoglalóban
             { osszefoglalo: { contains: szo, mode: 'insensitive' } }
         ]);
     }

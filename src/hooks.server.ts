@@ -9,18 +9,17 @@ import { modules, services } from '$lib/server/index';
 // 1. ROBOTPILÓTA (CRON JOB)
 // ==========================================
 if (!(globalThis as any).__robotPilotaInditva) {
+    
+    // HÍRGYŰJTŐ ÉS ELEMZŐ (Fut minden órában)
     cron.schedule('0 * * * *', async () => {
         console.log('\n[CRON] Robotpilóta ébred: Hírek automatikus letöltése ÉS AI elemzése indul...');
         try {
-            // 1. Lekéri az összes usert az adatbázisból
             const users = await services.db.felhasznalok.findMany();
 
-            // 2. Minden usernek lefrissíti a forrásait a SAJÁT API kulcsaival! (BYOK)
             for (const user of users) {
                 await modules.hirGyujto.osszesForrasFrissitese(user.id);
             }
 
-            // 3. AI klaszterezés
             await modules.aiElemzo.ujHirekFeldolgozasa();
             console.log('[CRON] Automatikus frissítés és AI klaszterezés befejeződött!\n');
         } catch (error) {
@@ -28,8 +27,19 @@ if (!(globalThis as any).__robotPilotaInditva) {
         }
     });
 
+    // ARCHIVÁLÓ TAKARÍTÓ (Fut minden hajnal 3:00-kor)
+    cron.schedule('0 3 * * *', async () => {
+        console.log('\n[CRON] Éjszakai adatbázis takarítás (Soft Delete) indul...');
+        try {
+            // Archiválja a 7 napnál régebbi híreket
+            await services.archive.regiHirekArchivalasa(7);
+        } catch (error) {
+            console.error('[CRON] Hiba az archiválás során:', error);
+        }
+    });
+
     (globalThis as any).__robotPilotaInditva = true;
-    console.log('Robotpilóta (Cron) SIKERESEN élesítve. Óránként elemez.');
+    console.log('Robotpilóta (Cron) SIKERESEN élesítve. Óránként elemez, hajnalban takarít.');
 }
 
 // ==========================================
