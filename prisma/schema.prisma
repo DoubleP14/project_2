@@ -82,6 +82,8 @@ model Hirek {
   jelentoz       Boolean   @default(false) 
   cluster_id     String?   
 
+  archivalt      Boolean   @default(false)
+
   felhasznalo Felhasznalok? @relation(fields: [felhasznalo_id], references: [id], onDelete: SetNull)
   forras      HirForrasok?  @relation(fields: [forras_id], references: [id])
 

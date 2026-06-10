@@ -11,9 +11,11 @@ import { createPrisma } from "./utils/create-prisma";
 
 // Services és Modules importok
 import { createHirRepository } from "./services/hirRepository"; 
-import { createAiService } from "./services/aiService";         
+import { createAiService } from "./services/aiService";        
 import { createHirGyujtoModule } from "./modules/hirGyujtoModule"; 
 import { createAiModule } from "./modules/aiModule";           
+import { createNotificationService } from "./services/notificationService";
+import { createArchiveService } from "./services/archiveService";
 
 // --- 1. KONFIGURÁCIÓ ---
 export type Config = {
@@ -44,7 +46,9 @@ export function createServices(cfg: Config) {
     return {
         db: prisma,
         hirRepo: createHirRepository(prisma),
-        ai: createAiService(cfg.ai.apiKey) 
+        ai: createAiService(cfg.ai.apiKey),
+        notify: createNotificationService(prisma),
+        archive: createArchiveService(prisma)
     };
 }
 
