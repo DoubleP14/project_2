@@ -14,14 +14,15 @@ if (!(globalThis as any).__robotPilotaInditva) {
     cron.schedule('0 * * * *', async () => {
         console.log('\n[CRON] Robotpilóta ébred: Hírek automatikus letöltése ÉS AI elemzése indul...');
         try {
-            const users = await services.db.felhasznalok.findMany();
+            const users = await services.db.felhasznalok.findMany({ where: { aktiv: true } });
 
             for (const user of users) {
+                console.log(`\n[CRON] Feldolgozás a(z) ${user.id}. felhasználónak...`);
                 await modules.hirGyujto.osszesForrasFrissitese(user.id);
+                await modules.aiElemzo.ujHirekFeldolgozasa(user.id); 
             }
 
-            await modules.aiElemzo.ujHirekFeldolgozasa();
-            console.log('[CRON] Automatikus frissítés és AI klaszterezés befejeződött!\n');
+            console.log('\n[CRON] Automatikus frissítés és AI klaszterezés befejeződött!\n');
         } catch (error) {
             console.error('[CRON] Kritikus hiba történt:', error);
         }

@@ -3,6 +3,7 @@ import { services } from '$lib/server';
 import { fail, redirect } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
 import { encrypt } from '$lib/server/crypto'; 
+import { logger } from '$lib/server/services/loggerService'; // <--- ÚJ: Logger behozva
 
 export const load: PageServerLoad = async ({ locals }) => {
     // 1. AJTÓNÁLLÓ (Biztonság)
@@ -23,24 +24,30 @@ export const load: PageServerLoad = async ({ locals }) => {
         orderBy: { id: 'desc' }
     });
 
-    // BIZTONSÁG: Nem küldi ki a nyers API kulcsokat a böngészőbe!
-    let displayApiKey = '';
-    if (felhasznalo?.api_key) {
-        displayApiKey = '•••••••••••••••••••••••••••• (Titkosítva mentve)';
-    }
+    // Értesítési napló előzményeinek lekérése (Legutóbbi 15 riasztás)
+    const ertesitesek = await prisma.ertesitesek.findMany({
+        where: { felhasznalo_id: userId },
+        orderBy: { id: 'desc' },
+        take: 15,
+        include: { hir: true }
+    });
 
-    let displayYoutubeKey = '';
-    if (felhasznalo?.youtube_api_key) {
-        displayYoutubeKey = '•••••••••••••••••••••••••••• (Mentve)';
-    }
+    // BIZTONSÁG: Nem küldi ki a nyers kulcsokat a böngészőbe!
+    let displayApiKey = felhasznalo?.api_key ? '•••••••••••••••••••••••••••• (Titkosítva mentve)' : '';
+    let displayYoutubeKey = felhasznalo?.youtube_api_key ? '•••••••••••••••••••••••••••• (Titkosítva mentve)' : '';
+    let displayDiscord = felhasznalo?.discord_webhook ? '•••••••••••••••••••••••••••• (Titkosítva mentve)' : '';
+    let displayTelegram = felhasznalo?.telegram_chat_id ? '•••••••••••••••••••••••••••• (Titkosítva mentve)' : '';
 
     return { 
         felhasznalo: {
             ...felhasznalo,
             api_key: displayApiKey,
-            youtube_api_key: displayYoutubeKey 
+            youtube_api_key: displayYoutubeKey,
+            discord_webhook: displayDiscord,
+            telegram_chat_id: displayTelegram
         },
-        forrasok: forrasok 
+        forrasok: forrasok,
+        ertesitesek: ertesitesek 
     };
 };
 
@@ -56,29 +63,30 @@ export const actions: Actions = {
         
         const aiProvider = formData.get('ai_provider')?.toString() || null;
         const preferaltCsatorna = formData.get('preferalt_csatorna')?.toString() as any || 'EMAIL';
-        const discordWebhook = formData.get('discord_webhook')?.toString().trim() || null;
-        const telegramChatId = formData.get('telegram_chat_id')?.toString().trim() || null;
         
         // Kulcsok kiolvasása
-        let apiKey = formData.get('api_key')?.toString().trim() || null;
-        let youtubeApiKey = formData.get('youtube_api_key')?.toString().trim() || null;
+        let apiKey = formData.get('api_key')?.toString().trim();
+        let youtubeApiKey = formData.get('youtube_api_key')?.toString().trim();
+        let discordWebhook = formData.get('discord_webhook')?.toString().trim();
+        let telegramChatId = formData.get('telegram_chat_id')?.toString().trim();
 
         let dataToUpdate: any = {
             ai_provider: aiProvider,
-            preferalt_csatorna: preferaltCsatorna,
-            discord_webhook: discordWebhook,
-            telegram_chat_id: telegramChatId
+            preferalt_csatorna: preferaltCsatorna
         };
 
-        // AI kulcs mentése 
-        if (apiKey && !apiKey.includes('••••')) {
-            dataToUpdate.api_key = encrypt(apiKey);
-        }
+        // Kulcsok titkosítása mentés előtt
+        if (apiKey === '') dataToUpdate.api_key = null;
+        else if (apiKey && !apiKey.includes('••••')) dataToUpdate.api_key = encrypt(apiKey);
 
-        // YouTube kulcs mentése 
-        if (youtubeApiKey && !youtubeApiKey.includes('••••')) {
-            dataToUpdate.youtube_api_key = youtubeApiKey;
-        }
+        if (youtubeApiKey === '') dataToUpdate.youtube_api_key = null;
+        else if (youtubeApiKey && !youtubeApiKey.includes('••••')) dataToUpdate.youtube_api_key = encrypt(youtubeApiKey);
+
+        if (discordWebhook === '') dataToUpdate.discord_webhook = null;
+        else if (discordWebhook && !discordWebhook.includes('••••')) dataToUpdate.discord_webhook = encrypt(discordWebhook);
+
+        if (telegramChatId === '') dataToUpdate.telegram_chat_id = null;
+        else if (telegramChatId && !telegramChatId.includes('••••')) dataToUpdate.telegram_chat_id = encrypt(telegramChatId);
 
         try {
             await prisma.felhasznalok.update({
@@ -206,7 +214,7 @@ export const actions: Actions = {
         }
     },
 
-    // --- 6. TESZT ÉRTESÍTÉS KÜLDÉSE (DINAMIKUS JAVÍTÁS) ---
+    // --- 6. TESZT ÉRTESÍTÉS KÜLDÉSE ---
     testNotification: async ({ locals }) => {
         const user = locals.user;
         if (!user) throw redirect(303, '/login');
@@ -214,7 +222,6 @@ export const actions: Actions = {
         const prisma = services.db;
 
         try {
-            // Frissen lekérjük a mentett adatokat, hogy lássuk a preferált csatornát
             const freshUser = await prisma.felhasznalok.findUnique({ where: { id: user.id } });
             const aktualisCsatorna = freshUser?.preferalt_csatorna || 'EMAIL';
 
@@ -237,7 +244,6 @@ export const actions: Actions = {
                 });
 
                 if (sikeres) {
-                    // DINAMIKUS SIKER ÜZENET JAVÍTÁSA
                     let csatornaNev = 'a megadott csatornára';
                     if (aktualisCsatorna === 'DISCORD') csatornaNev = 'a Discordra';
                     if (aktualisCsatorna === 'EMAIL') csatornaNev = 'e-mailben';
@@ -254,5 +260,42 @@ export const actions: Actions = {
         } catch (error) {
             return fail(500, { message: 'Hiba a szerver oldalon a teszt során.' });
         }
+    },
+
+    // --- 7. MANUÁLIS ARCHIVÁLÁS TESZT ---
+    runArchiveTest: async ({ locals }) => {
+        const user = locals.user;
+        if (!user) throw redirect(303, '/login');
+
+        try {
+            await services.archive.regiHirekArchivalasa(7);
+            return { 
+                success: true, 
+                message: 'A 7 napnál régebbi hírek archiválási folyamata lefutott!' 
+            };
+        } catch (error) {
+            console.error(error);
+            return fail(500, { message: 'Hiba történt a manuális archiválás során.' });
+        }
+    },
+
+    // --- 8. CSOMAG LEMONDÁSA (DOWNGRADE) ---
+    downgrade: async ({ locals }) => {
+        const user = locals.user;
+        if (!user) throw redirect(303, '/login');
+
+        try {
+            await services.db.felhasznalok.update({
+                where: { id: user.id },
+                data: { subscription_tier: 'starter' } // Vagy 'free', attól függően, hogy hívod az alap csomagot
+            });
+
+            await logger.info('DOWNGRADE', 'Felhasználó visszaváltott az ingyenes csomagra', user.id);
+
+        } catch (error) {
+            console.error('Hiba a csomag lemondásakor:', error);
+        }
+
+        throw redirect(303, '/settings?downgraded=true');
     }
 };

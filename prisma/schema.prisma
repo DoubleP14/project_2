@@ -27,6 +27,11 @@ model Felhasznalok {
   password_hash       String?
   role                String?   @default("user")
   subscription_tier   String?   @default("alap")
+  aktiv              Boolean  @default(true) 
+  
+  // ─── ÚJ MEZŐK AZ E-MAIL MEGERŐSÍTÉSHEZ ───
+  email_verified     Boolean  @default(false) // Alapból senki sincs megerősítve
+  verification_token String?  @unique         // Itt tároljuk a titkos aktiváló link kódját
   
   // --- BYOK Beállítások ---
   ai_provider         String?   
@@ -101,6 +106,7 @@ model AiElemzesek {
   osszefoglalo    String?
   kulcsszavak     String[]
   hasznalt_modell String?
+  pontszam        Int?      @default(0)
   elemzes_datuma  DateTime? @default(now())
 
   hir Hirek @relation(fields: [hir_id], references: [id], onDelete: Cascade)

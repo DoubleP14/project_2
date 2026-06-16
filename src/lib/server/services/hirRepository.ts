@@ -59,21 +59,28 @@ export function createHirRepository(prisma: PrismaClient) {
             }
         },
 
-        getFeldolgozatlanHirek: async (limit: number = 3) => {
+        getFeldolgozatlanHirek: async (limit: number = 3, userId?: number) => {
             return await prisma.hirek.findMany({
-                where: { ai_elemzesek: { none: {} } }, 
+                where: { 
+                    ai_elemzesek: { none: {} },
+                    // Ha adtak meg userId-t, csak annak a felhasználónak a híreit hozza le:
+                    ...(userId ? { felhasznalo_id: userId } : {}) 
+                }, 
                 take: limit,
-                orderBy: { datum: 'desc' }
+                orderBy: { datum: 'desc' },
+                include: { forras: true } 
             });
         },
 
-        saveAiElemzes: async (hirId: number, osszefoglalo: string, hangulat: string, modellNeve: string) => {
+        // JAVÍTÁS: Bekerült az 5. paraméter (pontszam), ami beíródik az adatbázisba!
+        saveAiElemzes: async (hirId: number, osszefoglalo: string, hangulat: string, modellNeve: string, pontszam: number = 0) => {
             return await prisma.aiElemzesek.create({
                 data: {
                     hir_id: hirId,
                     osszefoglalo: osszefoglalo,
                     hangulat: hangulat,
-                    hasznalt_modell: modellNeve 
+                    hasznalt_modell: modellNeve,
+                    pontszam: pontszam 
                 }
             });
         }

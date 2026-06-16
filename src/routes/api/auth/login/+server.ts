@@ -2,7 +2,8 @@ import { json } from '@sveltejs/kit';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { services } from '$lib/server';
-import { JWT_SECRET } from '$env/static/private'; // Behozza a titkos kulcsot a .env-ből
+import { JWT_SECRET } from '$env/static/private';
+import { logger } from '$lib/server/services/loggerService'; 
 
 export const POST = async ({ request, cookies }) => {
     try {
@@ -20,7 +21,6 @@ export const POST = async ({ request, cookies }) => {
         });
 
         if (!user || !user.password_hash) {
-            // Fontos: Direkt nem mondja meg, hogy az email vagy a jelszó rossz-e (biztonsági okokból)
             return json({ error: 'Hibás email cím vagy jelszó!' }, { status: 401 });
         }
 
@@ -30,6 +30,14 @@ export const POST = async ({ request, cookies }) => {
         if (!jelszoHelyes) {
             return json({ error: 'Hibás email cím vagy jelszó!' }, { status: 401 });
         }
+
+        // ─── E-MAIL MEGERŐSÍTÉS ELLENŐRZÉSE ───
+        if (!user.email_verified) {
+            return json({ 
+                error: 'A fiókod még nincs aktiválva! Kérlek, kattints a regisztrációkor kapott e-mailben lévő linkre.' 
+            }, { status: 403 });
+        }
+        // ──────────────────────────────────────────
 
         // 3. JWT Token gyártás
         const token = jwt.sign(
@@ -46,6 +54,8 @@ export const POST = async ({ request, cookies }) => {
             secure: process.env.NODE_ENV === 'production', 
             maxAge: 60 * 60 * 24 
         });
+
+        await logger.info('LOGIN', `Sikeres bejelentkezés (${user.email})`, user.id);
 
         // 5. Visszaszól a a Frontendnek, hogy jöhet befelé!
         return json({ 

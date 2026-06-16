@@ -1,20 +1,44 @@
 // src/lib/server/services/notificationService.ts
 import type { PrismaClient } from "@prisma/client";
 import nodemailer from "nodemailer";
+// ÚJ: Behozzuk a decrypt függvényt a visszafejtéshez
+import { decrypt } from "../crypto";
 
 export function createNotificationService(prisma: PrismaClient) {
     
+    // --- SEGÉDFÜGGVÉNY: TrustScore formázása ---
+    const getTrustScoreKinezet = (score?: number) => {
+        const num = score || 0;
+        if (num <= 30) return { emoji: '🔴', label: 'Alacsony (Clickbait)', szinHex: '#ef4444' }; // Piros
+        if (num <= 70) return { emoji: '🟡', label: 'Normál', szinHex: '#eab308' };              // Sárga
+        return { emoji: '🟢', label: 'Kiemelkedő (Fontos!)', szinHex: '#22c55e' };               // Zöld
+    };
+
+    // --- SEGÉDFÜGGVÉNY: Biztonságos visszafejtés (Plain Text / Ciphertext hibrid kezelés) ---
+    const biztonsagosVisszafejtes = (szoveg: string | null): string => {
+        if (!szoveg) return "";
+        try {
+            return decrypt(szoveg);
+        } catch (e) {
+            // Ha a decrypt hibát dob, az azt jelenti, hogy a string nem titkosított.
+            // Ekkor visszaadja az eredeti szöveget, így nem áll le hibával a szerver!
+            return szoveg;
+        }
+    };
+
     // --- 1. Discord Webhook Helper ---
     const sendDiscordWebhook = async (webhookUrl: string, hirAdatok: any) => {
         let szin = 8421504; 
         if (hirAdatok.hangulat === 'POZITIV') szin = 5763719; 
         if (hirAdatok.hangulat === 'NEGATIV') szin = 15548997; 
 
+        const ts = getTrustScoreKinezet(hirAdatok.pontszam);
+
         const payload = {
             content: "🔔 **Új, releváns tartalom detektálva!**",
             embeds: [{
                 title: hirAdatok.cim,
-                description: hirAdatok.osszefoglalo || "Nincs elérhető összefoglaló.",
+                description: `**Hírérték (TrustScore):** ${ts.emoji} **${hirAdatok.pontszam || 0}/100** - *${ts.label}*\n\n**Összefoglaló:**\n${hirAdatok.osszefoglalo || "Nincs elérhető összefoglaló."}`,
                 url: hirAdatok.url || "https://gamer365.hu",
                 color: szin,
                 footer: {
@@ -48,15 +72,29 @@ export function createNotificationService(prisma: PrismaClient) {
             },
         });
 
+        const ts = getTrustScoreKinezet(hirAdatok.pontszam);
+
         const htmlContent = `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333; line-height: 1.6;">
                 <h2 style="color: #2563eb; border-bottom: 2px solid #2563eb; padding-bottom: 10px;">🔔 Új tartalom detektálva</h2>
                 <h3 style="color: #1e293b; margin-top: 20px;">${hirAdatok.cim}</h3>
-                <p style="background: #f8fafc; padding: 15px; border-left: 4px solid #cbd5e1; border-radius: 4px;">
+                
+                <div style="background: #f8fafc; padding: 15px; border-left: 4px solid ${ts.szinHex}; border-radius: 4px; margin-bottom: 15px;">
+                    <p style="margin: 0 0 10px 0; font-size: 16px;">
+                        <strong>Hírérték (TrustScore):</strong> 
+                        <span style="color: ${ts.szinHex}; font-weight: bold; font-size: 18px;">${ts.emoji} ${hirAdatok.pontszam || 0}/100</span> 
+                        <span style="color: #64748b; font-size: 14px;">(${ts.label})</span>
+                    </p>
+                    <p style="margin: 0;">
+                        <strong>AI Hangulat:</strong> ${hirAdatok.hangulat || "SEMLEGES"}
+                    </p>
+                </div>
+
+                <p>
                     <strong>AI Összefoglaló:</strong><br/>
                     ${hirAdatok.osszefoglalo || "Nincs elérhető összefoglaló."}
                 </p>
-                <p><strong>AI Hangulat:</strong> ${hirAdatok.hangulat || "SEMLEGES"}</p>
+                
                 <div style="margin-top: 30px;">
                     <a href="${hirAdatok.url || 'https://444.hu'}" style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold;">
                         Cikk megnyitása
@@ -70,7 +108,7 @@ export function createNotificationService(prisma: PrismaClient) {
         await transporter.sendMail({
             from: `"Hírfigyelő AI" <${process.env.SMTP_USER}>`,
             to: toEmail, 
-            subject: `Riasztás: ${hirAdatok.cim}`,
+            subject: `Riasztás [TS: ${hirAdatok.pontszam || 0}]: ${hirAdatok.cim}`,
             html: htmlContent,
         });
 
@@ -83,8 +121,9 @@ export function createNotificationService(prisma: PrismaClient) {
         if (hirAdatok.hangulat === 'POZITIV') hangulatEmoji = "🟢";
         if (hirAdatok.hangulat === 'NEGATIV') hangulatEmoji = "🔴";
 
-        // Gyönyörűen formázott Markdown üzenet a Telegramra
-        const text = `🔔 *Új releváns tartalom!*\n\n*${hirAdatok.cim}*\n\n*AI Összefoglaló:*\n_${hirAdatok.osszefoglalo || "Nincs összefoglaló."}_\n\n*AI Hangulat:* ${hangulatEmoji} ${hirAdatok.hangulat || "SEMLEGES"}\n\n🔗 [Cikk megnyitása](${hirAdatok.url || 'https://444.hu'})`;
+        const ts = getTrustScoreKinezet(hirAdatok.pontszam);
+
+        const text = `🔔 *Új releváns tartalom!*\n\n*${hirAdatok.cim}*\n\n*TrustScore:* ${ts.emoji} *${hirAdatok.pontszam || 0}/100*\n_${ts.label}_\n\n*AI Összefoglaló:*\n${hirAdatok.osszefoglalo || "Nincs összefoglaló."}\n\n*AI Hangulat:* ${hangulatEmoji} ${hirAdatok.hangulat || "SEMLEGES"}\n\n🔗 [Cikk megnyitása](${hirAdatok.url || 'https://444.hu'})`;
 
         const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
             method: 'POST',
@@ -117,7 +156,9 @@ export function createNotificationService(prisma: PrismaClient) {
 
             try {
                 if (user.preferalt_csatorna === 'DISCORD' && user.discord_webhook) {
-                    await sendDiscordWebhook(user.discord_webhook, hirAdatok);
+                    // JAVÍTÁS: Intelligens visszafejtés használat előtt (nyílt szövegre is felkészítve)
+                    const tisztaWebhook = biztonsagosVisszafejtes(user.discord_webhook);
+                    await sendDiscordWebhook(tisztaWebhook, hirAdatok);
                     sikeres = true;
                 } else if (user.preferalt_csatorna === 'EMAIL' && user.email) {
                     if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
@@ -127,12 +168,13 @@ export function createNotificationService(prisma: PrismaClient) {
                         sikeres = true;
                     }
                 } else if (user.preferalt_csatorna === 'TELEGRAM' && user.telegram_chat_id) {
-                    // Ellenőrizzük, hogy a központi bot be van-e állítva
                     if (!process.env.TELEGRAM_BOT_TOKEN) {
                         uzenetLog = "Hiba: A TELEGRAM_BOT_TOKEN nincs beállítva a .env fájlban!";
                         console.error("[Notification Service]", uzenetLog);
                     } else {
-                        await sendTelegramMessage(process.env.TELEGRAM_BOT_TOKEN, user.telegram_chat_id, hirAdatok);
+                        // JAVÍTÁS: Intelligens visszafejtés használat előtt (nyílt szövegre is felkészítve)
+                        const tisztaChatId = biztonsagosVisszafejtes(user.telegram_chat_id);
+                        await sendTelegramMessage(process.env.TELEGRAM_BOT_TOKEN, tisztaChatId, hirAdatok);
                         sikeres = true;
                     }
                 } else if (user.preferalt_csatorna === 'DISCORD' && !user.discord_webhook) {
