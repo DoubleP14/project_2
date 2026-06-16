@@ -39,7 +39,7 @@ export function createNotificationService(prisma: PrismaClient) {
             embeds: [{
                 title: hirAdatok.cim,
                 description: `**Hírérték (TrustScore):** ${ts.emoji} **${hirAdatok.pontszam || 0}/100** - *${ts.label}*\n\n**Összefoglaló:**\n${hirAdatok.osszefoglalo || "Nincs elérhető összefoglaló."}`,
-                url: hirAdatok.url || "https://gamer365.hu",
+                url: hirAdatok.url || "http://localhost:5173",
                 color: szin,
                 footer: {
                     text: `AI Hangulat: ${hirAdatok.hangulat || 'Ismeretlen'} | Hírfigyelő Rendszer`
@@ -96,7 +96,7 @@ export function createNotificationService(prisma: PrismaClient) {
                 </p>
                 
                 <div style="margin-top: 30px;">
-                    <a href="${hirAdatok.url || 'https://444.hu'}" style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold;">
+                    <a href="${hirAdatok.url || 'http://localhost:5173'}" style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold;">
                         Cikk megnyitása
                     </a>
                 </div>
@@ -123,7 +123,7 @@ export function createNotificationService(prisma: PrismaClient) {
 
         const ts = getTrustScoreKinezet(hirAdatok.pontszam);
 
-        const text = `🔔 *Új releváns tartalom!*\n\n*${hirAdatok.cim}*\n\n*TrustScore:* ${ts.emoji} *${hirAdatok.pontszam || 0}/100*\n_${ts.label}_\n\n*AI Összefoglaló:*\n${hirAdatok.osszefoglalo || "Nincs összefoglaló."}\n\n*AI Hangulat:* ${hangulatEmoji} ${hirAdatok.hangulat || "SEMLEGES"}\n\n🔗 [Cikk megnyitása](${hirAdatok.url || 'https://444.hu'})`;
+        const text = `🔔 *Új releváns tartalom!*\n\n*${hirAdatok.cim}*\n\n*TrustScore:* ${ts.emoji} *${hirAdatok.pontszam || 0}/100*\n_${ts.label}_\n\n*AI Összefoglaló:*\n${hirAdatok.osszefoglalo || "Nincs összefoglaló."}\n\n*AI Hangulat:* ${hangulatEmoji} ${hirAdatok.hangulat || "SEMLEGES"}\n\n🔗 [Cikk megnyitása](${hirAdatok.url || 'http://localhost:5173'})`;
 
         const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
             method: 'POST',
@@ -156,7 +156,7 @@ export function createNotificationService(prisma: PrismaClient) {
 
             try {
                 if (user.preferalt_csatorna === 'DISCORD' && user.discord_webhook) {
-                    // JAVÍTÁS: Intelligens visszafejtés használat előtt (nyílt szövegre is felkészítve)
+                    // Intelligens visszafejtés használat előtt (nyílt szövegre is felkészítve)
                     const tisztaWebhook = biztonsagosVisszafejtes(user.discord_webhook);
                     await sendDiscordWebhook(tisztaWebhook, hirAdatok);
                     sikeres = true;
@@ -172,7 +172,7 @@ export function createNotificationService(prisma: PrismaClient) {
                         uzenetLog = "Hiba: A TELEGRAM_BOT_TOKEN nincs beállítva a .env fájlban!";
                         console.error("[Notification Service]", uzenetLog);
                     } else {
-                        // JAVÍTÁS: Intelligens visszafejtés használat előtt (nyílt szövegre is felkészítve)
+                        // Intelligens visszafejtés használat előtt (nyílt szövegre is felkészítve)
                         const tisztaChatId = biztonsagosVisszafejtes(user.telegram_chat_id);
                         await sendTelegramMessage(process.env.TELEGRAM_BOT_TOKEN, tisztaChatId, hirAdatok);
                         sikeres = true;
