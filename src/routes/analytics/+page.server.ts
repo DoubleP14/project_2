@@ -19,6 +19,18 @@ export const load = async () => {
         SEMLEGES: hangulatok.find(h => h.hangulat === 'SEMLEGES')?._count.hangulat || 0,
     };
 
+    // --- TRUSTSCORE STATISZTIKÁK ---
+    // Globális TrustScore átlag lekérése
+    const trustScoreAgregacio = await prisma.aiElemzesek.aggregate({
+        _avg: { pontszam: true }
+    });
+    const atlagosTrustScore = Math.round(trustScoreAgregacio._avg.pontszam || 0);
+
+    // Darabszámok kategóriák szerint (0-30, 31-70, 71-100)
+    const clickbaitDarab = await prisma.aiElemzesek.count({ where: { pontszam: { lte: 30 } } });
+    const normalDarab = await prisma.aiElemzesek.count({ where: { pontszam: { gt: 30, lte: 70 } } });
+    const kiemelkedoDarab = await prisma.aiElemzesek.count({ where: { pontszam: { gt: 70 } } });
+
     // 3. Nyers források lekérése (mindenkitől)
     const nyersForrasok = await prisma.hirForrasok.findMany({
         include: {
@@ -47,6 +59,12 @@ export const load = async () => {
     return {
         osszesElemzes,
         stat,
-        forrasok: egyediForrasok 
+        forrasok: egyediForrasok,
+        atlagosTrustScore,
+        trustScoreMegoszlas: {
+            clickbait: clickbaitDarab,
+            normal: normalDarab,
+            kiemelkedo: kiemelkedoDarab
+        }
     };
 };

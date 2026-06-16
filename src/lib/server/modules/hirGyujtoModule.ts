@@ -2,6 +2,7 @@
 import Parser from 'rss-parser';
 import type { Services } from '../index'; 
 import { rawConfig } from '../index';
+import { decrypt } from '../crypto'; 
 
 // Chrome böngészőnek hazudja a robotot, hogy ne tiltsa le a 403-as hibával
 const rssParser = new Parser({
@@ -147,7 +148,8 @@ export function createHirGyujtoModule(services: Services) {
             forrasok = forrasok.filter((forras: any) => forras.felhasznalo_id === userId);
             
             const userKulcsok = await services.hirRepo.getFelhasznaloKulcsok(userId);
-            const userYoutubeKey = userKulcsok?.youtube_api_key || null;
+            
+            const userYoutubeKey = userKulcsok?.youtube_api_key ? decrypt(userKulcsok.youtube_api_key) : null;
 
             console.log(`\n${forrasok.length} saját forrás ellenőrzése a(z) ${userId}. felhasználónak...`);
 
@@ -156,6 +158,7 @@ export function createHirGyujtoModule(services: Services) {
                     if (forras.tipus === 'RSS') {
                         await rssFeldolgozas(forras);
                     } else if (forras.tipus === 'YOUTUBE') {
+                        // Itt adjuk át a már megfejtett, tiszta kulcsot
                         await youtubeFeldolgozas(forras, userYoutubeKey);
                     } else {
                         console.log(`Ismeretlen forrás típus: ${forras.tipus}`);

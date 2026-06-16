@@ -42,7 +42,6 @@
 
 <div class="container mx-auto p-4 mt-8">
     
-    <!-- FEJLÉC ÉS SYNC GOMB -->
     <div class="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
         <h1 class="text-4xl font-extrabold text-gray-900 dark:text-white text-center sm:text-left">
             <span class="text-blue-600 dark:text-blue-500">Hírelemző</span>
@@ -57,7 +56,6 @@
         </Button>
     </div>
 
-    <!-- KIEMELT TÉMA (SZŰRÉS) -->
     <div class="mb-10 p-6 bg-gray-50 dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
         <h2 class="text-2xl font-bold mb-4 text-gray-900 dark:text-white">Célzott Szűrés (Kulcsszavak)</h2>
         <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
@@ -89,18 +87,14 @@
         </div>
     </div>
 
-    <!-- HÍRKÁRTYÁK MEGJELENÍTÉSE -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         
         {#each konkurenciaCikkek as elemzes}
             
-            <!-- GAP ANALYSIS: Ha van klaszter ID-je, de a saját listában nem szerepel -->
             {@const isHianyozo = elemzes.hir.cluster_id && !sajatKlaszterek.has(elemzes.hir.cluster_id)}
 
-            <!-- Ha hiányzó hír, felnagyítja és előtérbe hozza -->
             <div class="relative transition-transform duration-300 {isHianyozo ? 'scale-[1.02] z-10' : ''}">
                 
-                <!-- PIROS VILLOGÓ JELVÉNY -->
                 {#if isHianyozo}
                     <div class="absolute -top-3 -right-3 z-20 animate-pulse">
                         <Badge color="red" class="shadow-lg px-3 py-1.5 font-extrabold text-sm border border-red-500">
@@ -117,12 +111,10 @@
                         </h5>
                         
                         <div class="flex flex-wrap items-center gap-2 mb-4">
-                            <!-- Forrás neve -->
                             <Badge color="dark" rounded class="font-bold border border-gray-600">
                                 {elemzes.hir.forras?.forras_nev || 'Ismeretlen'}
                             </Badge>
 
-                            <!-- Hangulat -->
                             {#if elemzes.hangulat === 'POZITIV'}
                                 <Badge color="green" rounded>Pozitív</Badge>
                             {:else if elemzes.hangulat === 'NEGATIV'}
@@ -131,9 +123,18 @@
                                 <Badge color="dark" rounded>Semleges</Badge>
                             {/if}
                             
-                            <!-- Dátum -->
+                            {#if elemzes.pontszam !== undefined && elemzes.pontszam !== null}
+                                {#if elemzes.pontszam <= 30}
+                                    <Badge color="red" rounded class="font-bold">📉 TS: {elemzes.pontszam}</Badge>
+                                {:else if elemzes.pontszam <= 70}
+                                    <Badge color="yellow" rounded class="font-bold">📊 TS: {elemzes.pontszam}</Badge>
+                                {:else}
+                                    <Badge color="green" rounded class="font-bold">🚀 TS: {elemzes.pontszam}</Badge>
+                                {/if}
+                            {/if}
+                            
                             {#if elemzes.hir.datum}
-                                <span class="text-xs text-gray-500 dark:text-gray-400 font-medium">
+                                <span class="text-xs text-gray-500 dark:text-gray-400 font-medium ml-auto">
                                     {new Date(elemzes.hir.datum).toLocaleDateString('hu-HU')}
                                 </span>
                             {/if}
@@ -145,14 +146,13 @@
                     </div>
 
                     <Button href={elemzes.hir.url ?? '#'} target="_blank" color="{isHianyozo ? 'red' : 'alternative'}" class="w-full mt-4 font-bold">
-                        {isHianyozo ? 'Eredeti cikk elolvasása' : 'Eredeti cikk elolvasása'}
+                        Eredeti cikk elolvasása
                     </Button>
                     
                 </Card>
             </div>
         {/each}
 
-        <!-- Ha a szűrés után nem maradt cikk -->
         {#if konkurenciaCikkek.length === 0}
             <div class="col-span-full p-8 text-center bg-gray-50 dark:bg-gray-800 rounded-xl border border-dashed border-gray-300 dark:border-gray-600">
                 <p class="text-lg text-gray-600 dark:text-gray-400 font-medium">Nincs megjeleníthető cikk a konkurenciától a jelenlegi szűrőkkel.</p>
