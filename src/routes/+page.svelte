@@ -1,12 +1,26 @@
 <script lang="ts">
-    import { Card, Badge, Button, Input, Helper, Spinner } from 'flowbite-svelte';
-    import { enhance } from '$app/forms'; // Fontos a sima űrlapküldéshez újratöltés nélkül!
+    import { Card, Badge, Button, Input, Helper, Spinner, Toast } from 'flowbite-svelte';
+    import { SearchSolid, CogSolid, RefreshOutline, CheckCircleSolid, CloseCircleSolid } from 'flowbite-svelte-icons';
+    import { enhance } from '$app/forms'; 
+    import { fly } from 'svelte/transition';
+    import { formatDate } from '$lib/utils/format-date'; 
 
     export let data;
     export let form: any; 
+    
+    let showToast = false;
+    let toastType: 'success' | 'error' = 'success';
+    let toastMessage = '';
+
+    function triggerToast(type: 'success' | 'error', message: string) {
+        toastType = type;
+        toastMessage = message;
+        showToast = true;
+        // 4 másodperc után magától eltűnik
+        setTimeout(() => { showToast = false; }, 4000);
+    }
 
     // --- GAP ANALYSIS (HIÁNYZÓ HÍREK) LOGIKA ---
-    // 1. Összegyűjtji a SAJÁT cikkeknek a klaszter azonosítóit
     $: sajatKlaszterek = new Set(
         data.cikkek
             .filter((e: any) => e.hir.forras?.is_own_source)
@@ -14,11 +28,13 @@
             .filter((id: any) => id !== null)
     );
 
-    // 2. A képernyőre CSAK a konkurencia cikkeit engedi ki 
     $: konkurenciaCikkek = data.cikkek.filter((e: any) => !e.hir.forras?.is_own_source);
 
+    // --- KLIENSOLDALI PAGINATION (MUTASS TÖBBET) LOGIKA ---
+    let visibleCount = 10; // Alapból csak 10 db hírt mutat meg
+    $: megjelenitettCikkek = konkurenciaCikkek.slice(0, visibleCount);
 
-    // --- Kézi frissítés logikája ---
+    // --- Kézi frissítés logikája (JAVÍTVA TOAST-TAL) ---
     let isSyncing = false;
 
     async function keziFrissites() {
@@ -26,21 +42,23 @@
         try {
             const response = await fetch('/api/news/sync', { method: 'GET' });
             if (response.ok) {
-                window.location.reload(); 
+                triggerToast('success', 'Sikeres szinkronizálás! Hírek frissítése...');
+                // Várunk picit, hogy a felhasználó elolvassa a sikert, utána frissítünk
+                setTimeout(() => { window.location.reload(); }, 1500);
             } else {
                 const resData = await response.json();
-                alert(`${resData.uzenet || 'Hiba történt a frissítés során!'}`);
+                triggerToast('error', resData.uzenet || 'Hiba történt a frissítés során!');
             }
         } catch (error) {
             console.error('Hiba a hálózati kérésben:', error);
-            alert('Nem sikerült elérni a szervert.');
+            triggerToast('error', 'Nem sikerült elérni a szervert.');
         } finally {
             isSyncing = false;
         }
     }
 </script>
 
-<div class="container mx-auto p-4 mt-8">
+<div class="container mx-auto p-4 mt-8 max-w-7xl">
     
     <div class="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
         <h1 class="text-4xl font-extrabold text-gray-900 dark:text-white text-center sm:text-left">
@@ -51,7 +69,7 @@
             {#if isSyncing}
                 <Spinner class="me-2" size="4" /> Hírek letöltése és AI elemzés...
             {:else}
-                Kézi Frissítés (Sync)
+                <RefreshOutline class="w-4 h-4 me-2" /> Kézi Frissítés (Sync)
             {/if}
         </Button>
     </div>
@@ -87,13 +105,13 @@
         </div>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
         
-        {#each konkurenciaCikkek as elemzes}
+        {#each megjelenitettCikkek as elemzes}
             
             {@const isHianyozo = elemzes.hir.cluster_id && !sajatKlaszterek.has(elemzes.hir.cluster_id)}
 
-            <div class="relative transition-transform duration-300 {isHianyozo ? 'scale-[1.02] z-10' : ''}">
+            <div class="relative transition-transform duration-300 {isHianyozo ? 'scale-[1.01] z-10' : ''}">
                 
                 {#if isHianyozo}
                     <div class="absolute -top-3 -right-3 z-20 animate-pulse">
@@ -103,7 +121,7 @@
                     </div>
                 {/if}
 
-                <Card size="lg" class="flex flex-col justify-between h-full shadow-lg hover:shadow-xl transition-shadow {isHianyozo ? 'ring-4 ring-red-500 dark:ring-red-600' : ''}">
+                <Card size="xl" class="max-w-none flex flex-col justify-between h-full shadow-lg hover:shadow-xl transition-shadow {isHianyozo ? 'ring-4 ring-red-500 dark:ring-red-600' : ''}">
                     
                     <div class="mb-4">
                         <h5 class="mb-3 text-xl font-bold tracking-tight text-gray-900 dark:text-white">
@@ -135,7 +153,7 @@
                             
                             {#if elemzes.hir.datum}
                                 <span class="text-xs text-gray-500 dark:text-gray-400 font-medium ml-auto">
-                                    {new Date(elemzes.hir.datum).toLocaleDateString('hu-HU')}
+                                    {formatDate('%Y. $m %d.', elemzes.hir.datum)}
                                 </span>
                             {/if}
                         </div>
@@ -153,11 +171,50 @@
             </div>
         {/each}
 
-        {#if konkurenciaCikkek.length === 0}
-            <div class="col-span-full p-8 text-center bg-gray-50 dark:bg-gray-800 rounded-xl border border-dashed border-gray-300 dark:border-gray-600">
-                <p class="text-lg text-gray-600 dark:text-gray-400 font-medium">Nincs megjeleníthető cikk a konkurenciától a jelenlegi szűrőkkel.</p>
+        {#if konkurenciaCikkek.length > visibleCount}
+            <div class="col-span-full flex justify-center mt-6 mb-4">
+                <Button color="alternative" size="lg" class="font-bold px-10 py-3 shadow-md border-gray-300 dark:border-gray-600 hover:text-blue-600 transition-all hover:scale-105" on:click={() => visibleCount += 6}>
+                    Mutass többet ({konkurenciaCikkek.length - visibleCount} hír maradt)
+                </Button>
             </div>
+        {/if}
+
+        {#if konkurenciaCikkek.length === 0}
+            <Card size="xl" class="col-span-full text-center shadow-lg dark:bg-gray-800 w-full max-w-none py-16 mt-4 border border-gray-200 dark:border-gray-700">
+                <SearchSolid class="w-24 h-24 mx-auto text-blue-500 mb-6 animate-pulse" />
+                <h2 class="text-3xl font-extrabold text-gray-900 dark:text-white mb-4">Jelenleg üres a hírfolyamod!</h2>
+                <p class="text-lg text-gray-500 dark:text-gray-400 mb-8 max-w-2xl mx-auto">
+                    Ennek három oka lehet: még nem adtál hozzá hírforrást, a Robotpilóta még nem elemezte ki az új cikkeket, vagy túl szigorú kulcsszavakat adtál meg a szűrésnél.
+                </p>
+                <div class="flex flex-col sm:flex-row justify-center items-center gap-4">
+                    <Button href="/settings" color="alternative" size="lg" class="font-bold w-full sm:w-auto">
+                        <CogSolid class="w-5 h-5 mr-2" /> Hírforrások beállítása
+                    </Button>
+                    <Button on:click={keziFrissites} disabled={isSyncing} color="blue" size="lg" class="font-bold w-full sm:w-auto">
+                        {#if isSyncing}
+                            <Spinner class="me-2" size="4" /> Frissítés...
+                        {:else}
+                            <RefreshOutline class="w-5 h-5 mr-2" /> Kézi Frissítés
+                        {/if}
+                    </Button>
+                </div>
+            </Card>
         {/if}
 
     </div>
 </div>
+
+{#if showToast}
+    <div transition:fly={{ y: 30, duration: 300 }} class="fixed bottom-5 right-5 z-[100] max-w-xs shadow-2xl">
+        <Toast color={toastType === 'success' ? 'green' : 'red'} class="border dark:border-gray-700">
+            <svelte:fragment slot="icon">
+                {#if toastType === 'success'}
+                    <CheckCircleSolid class="w-5 h-5" />
+                {:else}
+                    <CloseCircleSolid class="w-5 h-5" />
+                {/if}
+            </svelte:fragment>
+            <span class="text-sm font-bold text-gray-900 dark:text-white">{toastMessage}</span>
+        </Toast>
+    </div>
+{/if}
