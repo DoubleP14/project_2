@@ -150,10 +150,28 @@ export function createAiModule(services: Services) {
                             url: hir.url,
                             pontszam: aiEredmeny.pontszam 
                         });
+
+                        // Értesítés sikeresen elküldve a felhasználónak
+                        await services.db.rendszerNaplo.create({
+                            data: { 
+                                felhasznalo_id: aktivUser.id, 
+                                esemeny_tipus: 'NOTIFICATION_SENT', 
+                                leiras: `Riasztás elküldve (${riasztasOka}): ${hir.cim.substring(0, 50)}...` 
+                            }
+                        });
                     }
                     
                 } catch (error) {
                     console.error(`Hiba a '${hir.cim}' hír elemzésekor:`, error);
+                    
+                    // AI Elemzési hiba
+                    await services.db.rendszerNaplo.create({
+                        data: { 
+                            felhasznalo_id: aktivUser.id, 
+                            esemeny_tipus: 'AI_ERROR', 
+                            leiras: `Hiba a hír AI elemzésekor: ${hir.cim.substring(0, 50)}...` 
+                        }
+                    });
                 }
                 
                 // 4 másodperc szünet az API kvóták kímélése érdekében

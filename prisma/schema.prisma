@@ -28,10 +28,10 @@ model Felhasznalok {
   role                String?   @default("user")
   subscription_tier   String?   @default("alap")
   aktiv              Boolean  @default(true) 
-  
+
   // ─── ÚJ MEZŐK AZ E-MAIL MEGERŐSÍTÉSHEZ ───
-  email_verified     Boolean  @default(false) // Alapból senki sincs megerősítve
-  verification_token String?  @unique         // Itt tároljuk a titkos aktiváló link kódját
+  email_verified     Boolean  @default(false) 
+  verification_token String?  @unique         
   
   // --- BYOK Beállítások ---
   ai_provider         String?   
@@ -67,6 +67,8 @@ model HirForrasok {
   is_own_source    Boolean     @default(false) 
   aktiv            Boolean     @default(true)
   utolso_frissites DateTime?
+  hiba_szamlalo    Int       @default(0)
+  utolso_hiba      String?   @db.Text
 
   szuro_kifejezesek String?
 

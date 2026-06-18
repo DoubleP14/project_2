@@ -7,7 +7,10 @@ declare global {
         interface Locals {
             user?: {
                 id: number;
-                role: string;
+                email: string;
+                username: string | null;
+                subscription_tier: string | null;
+                role: string;   
             };
         }
         

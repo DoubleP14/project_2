@@ -1,11 +1,15 @@
 <script lang="ts">
     import { enhance } from '$app/forms'; 
-    import { page } from '$app/stores'; // <--- ÚJ: Behoztuk a page store-t az URL paraméterekhez
+    import { page } from '$app/stores'; 
     import { Card, Input, Label, Button, Alert, Select, Toggle, Badge, Modal, Tabs, TabItem, Table, TableBody, TableBodyCell, TableBodyRow, TableHead, TableHeadCell } from 'flowbite-svelte';
-    import { InfoCircleSolid, LockSolid, BellSolid, GlobeSolid, EditOutline, TrashBinOutline, UserCircleSolid, AdjustmentsVerticalSolid, CreditCardSolid, CheckCircleSolid, CloseCircleSolid } from 'flowbite-svelte-icons';
+    import { InfoCircleSolid, LockSolid, BellSolid, GlobeSolid, EditOutline, TrashBinOutline, UserCircleSolid, AdjustmentsVerticalSolid, CreditCardSolid, CheckCircleSolid, CloseCircleSolid, ExclamationCircleOutline } from 'flowbite-svelte-icons';
+    import { formatDate } from '$lib/utils/format-date'; // ÚJ IMPORT
 
     export let data;
     export let form;
+
+    // --- URL PARAMÉTER FIGYELŐ ---
+    $: isElofizetesTab = $page.url.searchParams.get('tab') === 'elofizetes';
 
     let aiProviders = [
         { value: 'GROQ', name: 'Groq (Llama 3.1 - Leggyorsabb)' },
@@ -29,6 +33,8 @@
     let selectedChannel = data.felhasznalo?.preferalt_csatorna || 'EMAIL';
     let selectedSourceType = 'RSS'; 
     let isOwnSourceChecked = false;
+
+    let torlesModalNyitva = false;
 
     let editModalOpen = false;
     let editingSource: any = null;
@@ -86,7 +92,7 @@
 
     <Tabs style="underline" class="mb-6">
         
-        <TabItem open>
+        <TabItem open={!isElofizetesTab}>
             <div slot="title" class="flex items-center gap-2"><UserCircleSolid size="sm"/> AI & Riasztások</div>
             <Card size="xl" class="shadow-lg dark:bg-gray-800 w-full max-w-none mt-4">
                 
@@ -299,7 +305,7 @@
                         {#each data.ertesitesek as log}
                             <TableBodyRow>
                                 <TableBodyCell class="text-xs text-gray-500">
-                                    {log.elkuldve_ekkor ? new Date(log.elkuldve_ekkor).toLocaleString('hu-HU') : 'Most'}
+                                    {log.elkuldve_ekkor ? formatDate('%Y. $m %d. %H:%I:%S', log.elkuldve_ekkor) : 'Most'}
                                 </TableBodyCell>
                                 <TableBodyCell class="font-medium max-w-xs truncate" title={log.hir?.cim}>
                                     {log.hir?.cim || 'Rendszer Teszt Üzenet'}
@@ -323,7 +329,7 @@
             </div>
         </TabItem>
 
-        <TabItem>
+        <TabItem open={isElofizetesTab}>
             <div slot="title" class="flex items-center gap-2"><CreditCardSolid size="sm"/> Előfizetés (Csomagok)</div>
             
             <div class="mt-6 text-center max-w-xl mx-auto mb-10">
@@ -360,7 +366,6 @@
                         </div>
                         <ul class="space-y-3 text-sm text-gray-700 dark:text-gray-200 mb-6 font-medium">
                             <li class="flex items-center gap-2"><CheckCircleSolid class="w-4 h-4 text-purple-600"/> Végtelen hírforrás (RSS + YT)</li>
-                            <li class="flex items-center gap-2"><CheckCircleSolid class="w-4 h-4 text-purple-600"/> Gemini 2.0 & Llama 3.1 modellek</li>
                             <li class="flex items-center gap-2"><CheckCircleSolid class="w-4 h-4 text-purple-600"/> Azonnali Discord & Telegram botok</li>
                             <li class="flex items-center gap-2"><CheckCircleSolid class="w-4 h-4 text-purple-600"/> TrustScore (Automatikus pontozás)</li>
                         </ul>
@@ -402,11 +407,39 @@
                     </form>
                 </div>
             {/if}
-
         </TabItem>
-
     </Tabs>
+
+    <div class="mt-12 border-t border-red-900/30 pt-8 mb-8">
+        <h3 class="text-xl font-bold text-red-500 mb-4">Fiók Kezelése (Veszélyes Zóna)</h3>
+        
+        <div class="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800 rounded-xl p-6 flex flex-col md:flex-row justify-between items-center gap-4 shadow-sm">
+            <div>
+                <h4 class="text-lg font-bold text-gray-900 dark:text-white">Fiók végleges törlése</h4>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    Ha törlöd a fiókodat, az összes adatod, hírforrásod, AI elemzésed és előfizetésed <b>azonnal és visszavonhatatlanul</b> törlődik a szervereinkről.
+                </p>
+            </div>
+            <Button color="red" class="whitespace-nowrap font-bold" on:click={() => torlesModalNyitva = true}>
+                Fiók Törlése
+            </Button>
+        </div>
+    </div>
 </div>
+
+<Modal bind:open={torlesModalNyitva} size="xs" autoclose={false}>
+    <div class="text-center">
+        <ExclamationCircleOutline class="mx-auto mb-4 text-red-500 w-12 h-12" />
+        <h3 class="mb-5 text-lg font-normal text-gray-500 dark:text-gray-400">
+            Biztosan törölni szeretnéd a fiókodat? Ezt a műveletet <b>nem lehet</b> visszavonni!
+        </h3>
+        
+        <form method="POST" action="?/fiokTorlese" use:enhance class="flex flex-col gap-3">
+            <Button color="red" type="submit" class="w-full font-bold">Igen, véglegesen törlöm</Button>
+            <Button color="alternative" class="w-full" on:click={() => torlesModalNyitva = false}>Mégse</Button>
+        </form>
+    </div>
+</Modal>
 
 <Modal title="Hírforrás szerkesztése" bind:open={editModalOpen} autoclose={false} size="sm">
     <form method="POST" action="?/updateSource" use:enhance={() => {

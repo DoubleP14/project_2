@@ -3,7 +3,7 @@ import { services } from '$lib/server';
 import { fail, redirect } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
 import { encrypt } from '$lib/server/crypto'; 
-import { logger } from '$lib/server/services/loggerService'; // <--- ÚJ: Logger behozva
+import { logger } from '$lib/server/services/loggerService';
 
 export const load: PageServerLoad = async ({ locals }) => {
     // 1. AJTÓNÁLLÓ (Biztonság)
@@ -287,7 +287,7 @@ export const actions: Actions = {
         try {
             await services.db.felhasznalok.update({
                 where: { id: user.id },
-                data: { subscription_tier: 'starter' } // Vagy 'free', attól függően, hogy hívod az alap csomagot
+                data: { subscription_tier: 'starter' }
             });
 
             await logger.info('DOWNGRADE', 'Felhasználó visszaváltott az ingyenes csomagra', user.id);
@@ -297,5 +297,26 @@ export const actions: Actions = {
         }
 
         throw redirect(303, '/settings?downgraded=true');
+    },
+
+    // --- 9. FIÓK VÉGLEGES TÖRLÉSE (GDPR) ---
+    fiokTorlese: async ({ locals, cookies }) => {
+        if (!locals.user) throw redirect(303, '/login');
+        
+        const userId = locals.user.id;
+        
+        try {
+            await services.db.felhasznalok.delete({
+                where: { id: userId }
+            });
+            
+            // Süti törlése és "szellem" munkamenet megszüntetése a szerveren
+            cookies.delete('session_token', { path: '/' });
+            locals.user = undefined;
+        } catch (error) {
+            console.error('Hiba a fiók törlésekor:', error);
+            return fail(500, { message: 'Nem sikerült törölni a fiókot a szerverről.' });
+        }
+        throw redirect(303, '/login');
     }
 };

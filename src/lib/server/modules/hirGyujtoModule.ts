@@ -17,8 +17,7 @@ export function createHirGyujtoModule(services: Services) {
     // --- 1. RSS FELDOLGOZÓ ---
     const rssFeldolgozas = async (forras: any) => {
         if (!forras.rss_url) {
-            console.log(`Kihagyva: ${forras.forras_nev} (Nincs megadva RSS link az adatbázisban)`);
-            return;
+            throw new Error(`Nincs megadva RSS link az adatbázisban`);
         }
 
         const feed = await rssParser.parseURL(forras.rss_url);
@@ -51,8 +50,7 @@ export function createHirGyujtoModule(services: Services) {
         const YOUTUBE_API_KEY = userYoutubeKey || rawConfig.youtube.apiKey; 
         
         if (!YOUTUBE_API_KEY) {
-            console.log(`[YouTube API] Hiba: Nincs érvényes API kulcs a rendszerben!`);
-            return;
+            throw new Error(`Nincs érvényes YouTube API kulcs a rendszerben!`);
         }
 
         let urlForChannelApi = '';
@@ -64,8 +62,7 @@ export function createHirGyujtoModule(services: Services) {
             const channelId = forras.forras_url.split('/channel/')[1].split('?')[0].split('/')[0];
             urlForChannelApi = `https://www.googleapis.com/youtube/v3/channels?part=contentDetails&id=${channelId}&key=${YOUTUBE_API_KEY}`;
         } else {
-            console.log(`[YouTube API] Hiba: A linknek '@' jelet vagy '/channel/' részt kell tartalmaznia: ${forras.forras_url}`);
-            return;
+            throw new Error(`A linknek '@' jelet vagy '/channel/' részt kell tartalmaznia.`);
         }
 
         console.log(`[YouTube API] Csatorna adatainak lekérése a(z) ${forras.forras_nev} forráshoz...`);
@@ -75,8 +72,7 @@ export function createHirGyujtoModule(services: Services) {
 
             if (channelData.error) throw new Error(channelData.error.message);
             if (!channelData.items || channelData.items.length === 0) {
-                console.log(`[YouTube API] Nem található ilyen csatorna a Google szerint: ${forras.forras_url}`);
-                return;
+                throw new Error(`Nem található ilyen csatorna a Google szerint.`);
             }
 
             const playlistId = channelData.items[0].contentDetails.relatedPlaylists.uploads;
@@ -138,7 +134,7 @@ export function createHirGyujtoModule(services: Services) {
             }
             console.log(`- ${forras.forras_nev} feldolgozva (${feldolgozott} videó behúzva).`);
         } catch (error) {
-            console.error(`Hiba a(z) ${forras.forras_nev} frissítésekor:`, error instanceof Error ? error.message : error);
+            throw error;
         }
     };
 
@@ -148,7 +144,6 @@ export function createHirGyujtoModule(services: Services) {
             forrasok = forrasok.filter((forras: any) => forras.felhasznalo_id === userId);
             
             const userKulcsok = await services.hirRepo.getFelhasznaloKulcsok(userId);
-            
             const userYoutubeKey = userKulcsok?.youtube_api_key ? decrypt(userKulcsok.youtube_api_key) : null;
 
             console.log(`\n${forrasok.length} saját forrás ellenőrzése a(z) ${userId}. felhasználónak...`);
@@ -158,15 +153,41 @@ export function createHirGyujtoModule(services: Services) {
                     if (forras.tipus === 'RSS') {
                         await rssFeldolgozas(forras);
                     } else if (forras.tipus === 'YOUTUBE') {
-                        // Itt adjuk át a már megfejtett, tiszta kulcsot
                         await youtubeFeldolgozas(forras, userYoutubeKey);
                     } else {
-                        console.log(`Ismeretlen forrás típus: ${forras.tipus}`);
+                        throw new Error(`Ismeretlen forrás típus: ${forras.tipus}`);
                     }
                     
-                    await services.hirRepo.updateUtolsoFrissites(forras.id);
+                    // SIKERES LEFUTÁS: Nullázza a hiba számlálót és frissíti a dátumot!
+                    await services.db.hirForrasok.update({
+                        where: { id: forras.id },
+                        data: { 
+                            hiba_szamlalo: 0, 
+                            utolso_hiba: null,
+                            utolso_frissites: new Date()
+                        }
+                    });
+
                 } catch (error) {
                     console.error(`Hiba a(z) ${forras.forras_nev} frissítésekor:`, error instanceof Error ? error.message : error);
+                    
+                    // HIBA TÖRTÉNT: Növeli a számlálót, hogy megjelenjen a Dashboardon
+                    await services.db.hirForrasok.update({
+                        where: { id: forras.id },
+                        data: { 
+                            hiba_szamlalo: { increment: 1 },
+                            utolso_hiba: error instanceof Error ? error.message : 'Ismeretlen hiba'
+                        }
+                    });
+
+                    // Naplózza a rendszer naplóba is
+                    await services.db.rendszerNaplo.create({
+                        data: { 
+                            esemeny_tipus: 'FORRAS_HIBA', 
+                            leiras: `Hiba a(z) ${forras.forras_nev} forrásnál: ${error instanceof Error ? error.message : 'Ismeretlen'}`,
+                            felhasznalo_id: userId
+                        }
+                    });
                 }
             }
         }

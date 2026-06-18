@@ -1,6 +1,7 @@
 <script lang="ts">
     import "../app.css";
-    import { Navbar, NavBrand, NavHamburger, NavUl, NavLi, DarkMode } from 'flowbite-svelte';
+    import { Navbar, NavBrand, NavHamburger, NavUl, NavLi, DarkMode, Avatar, Dropdown, DropdownHeader, DropdownItem, DropdownDivider, Badge } from 'flowbite-svelte';
+    import { CogSolid, CreditCardSolid, ArrowRightToBracketOutline } from 'flowbite-svelte-icons';
     import { page } from '$app/stores'; 
 
     let { children } = $props();
@@ -23,11 +24,38 @@
     </NavBrand>
     
     <div class="flex md:order-2 gap-3 items-center">
-        <DarkMode class="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-sm p-2.5" />
+        <DarkMode class="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-sm p-2.5 mr-1" />
         
-        <button onclick={handleLogout} class="text-sm font-semibold text-red-600 dark:text-red-500 hover:underline px-2 cursor-pointer">
-            Kijelentkezés
-        </button>
+        <Avatar id="user-menu" class="cursor-pointer bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-300 font-bold" dot={{ color: 'green' }}>
+            {$page.data.user?.username ? $page.data.user.username.charAt(0).toUpperCase() : 'U'}
+        </Avatar>
+        
+        <Dropdown triggeredBy="#user-menu" class="w-56 p-0 overflow-hidden text-sm font-medium shadow-xl border border-gray-100 dark:border-gray-700">
+            <DropdownHeader class="px-4 py-3 bg-gray-50 dark:bg-gray-800 rounded-t-lg">
+                <span class="block text-sm text-gray-900 dark:text-white font-bold">
+                    {$page.data.user?.username || 'Felhasználó'}
+                </span>
+                <span class="block text-xs text-gray-500 truncate dark:text-gray-400">
+                    {$page.data.user?.email || 'Fiók részletei'}
+                </span>
+                <Badge color="purple" size="xs" class="mt-2 w-fit">
+                    {$page.data.user?.subscription_tier === 'pro' ? 'Pro Analyst' : ($page.data.user?.subscription_tier === 'enterprise' ? 'Enterprise' : 'Starter')}
+                </Badge>
+            </DropdownHeader>
+            
+            <DropdownItem href="/settings" class="flex items-center gap-2 py-2.5">
+                <CogSolid class="w-4 h-4 text-gray-500" /> Beállítások & Kulcsok
+            </DropdownItem>
+            <DropdownItem href="/settings?tab=elofizetes" class="flex items-center gap-2 py-2.5">
+                <CreditCardSolid class="w-4 h-4 text-gray-500" /> Előfizetés kezelése
+            </DropdownItem>
+            
+            <DropdownDivider />
+            
+            <DropdownItem on:click={handleLogout} class="flex items-center gap-2 py-2.5 text-red-600 dark:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-b-lg">
+                <ArrowRightToBracketOutline class="w-4 h-4" /> Kijelentkezés
+            </DropdownItem>
+        </Dropdown>
 
         <NavHamburger />
     </div>
