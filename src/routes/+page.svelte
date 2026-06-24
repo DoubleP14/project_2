@@ -6,8 +6,17 @@
     import { formatDate } from '$lib/utils/format-date'; 
 
     export let data;
-    export let form: any; 
     
+    // --- KATEGÓRIÁK DEFINIÁLÁSA A GOMBOKHOZ ---
+    const kategoriak = [
+        { id: 'osszes', nev: '🌐 Összes Hír' },
+        { id: 'politika', nev: '🏛️ Politika & Belföld' },
+        { id: 'gazdasag', nev: '💼 Gazdaság' },
+        { id: 'kulfold', nev: '🌍 Külföld' },
+        { id: 'tech', nev: '💻 Tech & Tudomány' },
+        { id: 'sport', nev: '⚽ Sport' }
+    ];
+
     let showToast = false;
     let toastType: 'success' | 'error' = 'success';
     let toastMessage = '';
@@ -34,7 +43,7 @@
     let visibleCount = 10; // Alapból csak 10 db hírt mutat meg
     $: megjelenitettCikkek = konkurenciaCikkek.slice(0, visibleCount);
 
-    // --- Kézi frissítés logikája (JAVÍTVA TOAST-TAL) ---
+    // --- Kézi frissítés logikája ---
     let isSyncing = false;
 
     async function keziFrissites() {
@@ -43,7 +52,6 @@
             const response = await fetch('/api/news/sync', { method: 'GET' });
             if (response.ok) {
                 triggerToast('success', 'Sikeres szinkronizálás! Hírek frissítése...');
-                // Várunk picit, hogy a felhasználó elolvassa a sikert, utána frissítünk
                 setTimeout(() => { window.location.reload(); }, 1500);
             } else {
                 const resData = await response.json();
@@ -74,35 +82,40 @@
         </Button>
     </div>
 
+    <!-- SZŰRŐ MODUL -->
     <div class="mb-10 p-6 bg-gray-50 dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
-        <h2 class="text-2xl font-bold mb-4 text-gray-900 dark:text-white">Célzott Szűrés (Kulcsszavak)</h2>
-        <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
-            Ha megadsz kulcsszavakat, csak azokat a híreket fogod látni, amelyek megfelelnek ezeknek. Ha üres, mindent látsz.
-        </p>
         
-        <form method="POST" action="?/addKeyword" use:enhance class="flex gap-2 mb-2 max-w-lg">
-            <Input name="kulcsszo" placeholder="Pl. gazdaság, választás, adó..." required />
-            <Button type="submit" color="blue">Hozzáadás</Button>
-        </form>
-
-        {#if form?.message}
-            <Helper class="mb-4 text-red-600 dark:text-red-400 font-medium">{form.message}</Helper>
-        {/if}
-
-        <div class="flex flex-wrap gap-2 mt-4">
-            {#each data.kulcsszavak as k}
-                <form method="POST" action="?/deleteKeyword" use:enhance class="inline-block">
-                    <input type="hidden" name="id" value={k.id} />
-                    <button type="submit" class="border-none bg-transparent p-0 m-0 outline-none">
-                        <Badge color="indigo" class="cursor-pointer hover:bg-indigo-300 dark:hover:bg-indigo-800 transition-colors px-3 py-1.5 text-sm font-medium">
-                            {k.kulcsszo} <span class="ml-2 font-bold text-red-500 hover:text-red-700">✕</span>
-                        </Badge>
-                    </button>
-                </form>
-            {:else}
-                <span class="text-sm text-gray-500 dark:text-gray-400 italic">Még nincsenek kulcsszavaid. Jelenleg a konkurencia összes hírét látod.</span>
+        <h2 class="text-xl font-bold mb-3 text-gray-900 dark:text-white">Gyorsszűrők (Kategóriák)</h2>
+        <div class="flex flex-wrap gap-3 mb-6">
+            {#each kategoriak as kat}
+                <Button 
+                    href="?kategoria={kat.id}{data.keresoKifejezes ? `&q=${data.keresoKifejezes}` : ''}"
+                    color={data.aktivKategoria === kat.id ? 'blue' : 'light'}
+                    class="rounded-full px-5 py-2 font-bold shadow-sm transition-transform hover:scale-105"
+                >
+                    {kat.nev}
+                </Button>
             {/each}
         </div>
+
+        <hr class="mb-6 border-gray-200 dark:border-gray-700" />
+
+        <h2 class="text-xl font-bold mb-3 text-gray-900 dark:text-white">Szabad Szavas Keresés</h2>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
+            Keress rá bármilyen kifejezésre az aktuális hírfolyamban. (Ez nem módosítja a riasztásaidat!)
+        </p>
+        
+        <form method="GET" class="flex gap-2 mb-2 max-w-lg">
+            <!-- Megtartja a kategóriát, ha van -->
+            {#if data.aktivKategoria !== 'osszes'}
+                <input type="hidden" name="kategoria" value={data.aktivKategoria} />
+            {/if}
+            <Input name="q" placeholder="Keress cikkekre, személyekre..." value={data.keresoKifejezes} />
+            <Button type="submit" color="blue"><SearchSolid class="w-4 h-4 mr-2"/> Keresés</Button>
+            {#if data.keresoKifejezes}
+                <Button href="?kategoria={data.aktivKategoria}" color="light">Törlés</Button>
+            {/if}
+        </form>
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
@@ -184,18 +197,11 @@
                 <SearchSolid class="w-24 h-24 mx-auto text-blue-500 mb-6 animate-pulse" />
                 <h2 class="text-3xl font-extrabold text-gray-900 dark:text-white mb-4">Jelenleg üres a hírfolyamod!</h2>
                 <p class="text-lg text-gray-500 dark:text-gray-400 mb-8 max-w-2xl mx-auto">
-                    Ennek három oka lehet: még nem adtál hozzá hírforrást, a Robotpilóta még nem elemezte ki az új cikkeket, vagy túl szigorú kulcsszavakat adtál meg a szűrésnél.
+                    Nincs a szűrésnek megfelelő cikk. Válassz az "Összes Hír" kategóriát, vagy töröld az egyedi kulcsszavakat.
                 </p>
                 <div class="flex flex-col sm:flex-row justify-center items-center gap-4">
-                    <Button href="/settings" color="alternative" size="lg" class="font-bold w-full sm:w-auto">
-                        <CogSolid class="w-5 h-5 mr-2" /> Hírforrások beállítása
-                    </Button>
-                    <Button on:click={keziFrissites} disabled={isSyncing} color="blue" size="lg" class="font-bold w-full sm:w-auto">
-                        {#if isSyncing}
-                            <Spinner class="me-2" size="4" /> Frissítés...
-                        {:else}
-                            <RefreshOutline class="w-5 h-5 mr-2" /> Kézi Frissítés
-                        {/if}
+                    <Button href="?kategoria=osszes" color="blue" size="lg" class="font-bold w-full sm:w-auto">
+                        <RefreshOutline class="w-5 h-5 mr-2" /> Összes hír mutatása
                     </Button>
                 </div>
             </Card>

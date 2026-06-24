@@ -29,9 +29,12 @@ model Felhasznalok {
   subscription_tier   String?   @default("alap")
   aktiv              Boolean  @default(true) 
 
-  // ─── ÚJ MEZŐK AZ E-MAIL MEGERŐSÍTÉSHEZ ───
+  // ─── E-MAIL MEGERŐSÍTÉSE ───
   email_verified     Boolean  @default(false) 
-  verification_token String?  @unique         
+  verification_token String?  @unique
+
+  // --- Kategória feliratkozások az értesítésekhez ---
+  feliratkozott_kategoriak String[] @default([])         
   
   // --- BYOK Beállítások ---
   ai_provider         String?   
