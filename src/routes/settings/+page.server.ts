@@ -24,12 +24,18 @@ export const load: PageServerLoad = async ({ locals }) => {
         orderBy: { id: 'desc' }
     });
 
-    // Értesítési napló előzményeinek lekérése (Legutóbbi 15 riasztás)
+    // 4. Értesítési napló előzményeinek lekérése (Legutóbbi 15 riasztás)
     const ertesitesek = await prisma.ertesitesek.findMany({
         where: { felhasznalo_id: userId },
         orderBy: { id: 'desc' },
         take: 15,
         include: { hir: true }
+    });
+
+    // 5. ÚJ: Saját riasztási kulcsszavak lekérése
+    const kulcsszavakDB = await prisma.felhasznaloKulcsszavak.findMany({
+        where: { felhasznalo_id: userId },
+        orderBy: { hozzadas_ideje: 'asc' }
     });
 
     // BIZTONSÁG: Nem küldi ki a nyers kulcsokat a böngészőbe!
@@ -47,7 +53,8 @@ export const load: PageServerLoad = async ({ locals }) => {
             telegram_chat_id: displayTelegram
         },
         forrasok: forrasok,
-        ertesitesek: ertesitesek 
+        ertesitesek: ertesitesek,
+        kulcsszavak: kulcsszavakDB // <--- BEKERÜLT A RETURNBE
     };
 };
 
@@ -64,6 +71,9 @@ export const actions: Actions = {
         const aiProvider = formData.get('ai_provider')?.toString() || null;
         const preferaltCsatorna = formData.get('preferalt_csatorna')?.toString() as any || 'EMAIL';
         
+        // Feliratkozott kategóriák beolvasása (Tömbként)
+        const feliratkozottKategoriak = formData.getAll('feliratkozott_kategoriak') as string[];
+        
         // Kulcsok kiolvasása
         let apiKey = formData.get('api_key')?.toString().trim();
         let youtubeApiKey = formData.get('youtube_api_key')?.toString().trim();
@@ -72,7 +82,8 @@ export const actions: Actions = {
 
         let dataToUpdate: any = {
             ai_provider: aiProvider,
-            preferalt_csatorna: preferaltCsatorna
+            preferalt_csatorna: preferaltCsatorna,
+            feliratkozott_kategoriak: feliratkozottKategoriak
         };
 
         // Kulcsok titkosítása mentés előtt
@@ -93,10 +104,50 @@ export const actions: Actions = {
                 where: { id: userId },
                 data: dataToUpdate
             });
-            return { success: true, message: 'Beállítások biztonságosan mentve!' };
+            return { success: true, message: 'Beállítások és feliratkozások sikeresen mentve!' };
         } catch (error) {
             console.error(error);
             return fail(500, { message: 'Hiba történt a mentés során.' });
+        }
+    },
+
+    // --- KULCSSZÓ HOZZÁADÁSA ---
+    addKeyword: async ({ request, locals }) => {
+        const user = locals.user;
+        if (!user) throw redirect(303, '/login');
+
+        const prisma = services.db;
+        const formData = await request.formData();
+        const bevittSzo = formData.get('kulcsszo')?.toString().trim();
+
+        if (!bevittSzo || bevittSzo.length < 2) return fail(400, { message: 'Túl rövid kulcsszó!' });
+
+        try {
+            await prisma.felhasznaloKulcsszavak.create({
+                data: { kulcsszo: bevittSzo.toLowerCase(), felhasznalo_id: user.id }
+            });
+            return { success: true, message: 'Riasztási kulcsszó sikeresen hozzáadva!' };
+        } catch (error) {
+            return fail(400, { message: 'Ez a kulcsszó már szerepel a listádon!' });
+        }
+    },
+
+    // --- KULCSSZÓ TÖRLÉSE ---
+    deleteKeyword: async ({ request, locals }) => {
+        const user = locals.user;
+        if (!user) throw redirect(303, '/login');
+
+        const prisma = services.db;
+        const formData = await request.formData();
+        const id = Number(formData.get('id'));
+
+        try {
+            await prisma.felhasznaloKulcsszavak.delete({
+                where: { id: id, felhasznalo_id: user.id }
+            });
+            return { success: true, message: 'Kulcsszó törölve!' };
+        } catch (e) {
+            return fail(500, { message: 'Hiba a törlés során!' });
         }
     },
 

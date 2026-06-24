@@ -1,9 +1,9 @@
 <script lang="ts">
     import { enhance } from '$app/forms'; 
     import { page } from '$app/stores'; 
-    import { Card, Input, Label, Button, Alert, Select, Toggle, Badge, Modal, Tabs, TabItem, Table, TableBody, TableBodyCell, TableBodyRow, TableHead, TableHeadCell } from 'flowbite-svelte';
+    import { Card, Input, Label, Button, Alert, Select, Toggle, Badge, Modal, Tabs, TabItem, Table, TableBody, TableBodyCell, TableBodyRow, TableHead, TableHeadCell, Checkbox } from 'flowbite-svelte';
     import { InfoCircleSolid, LockSolid, BellSolid, GlobeSolid, EditOutline, TrashBinOutline, UserCircleSolid, AdjustmentsVerticalSolid, CreditCardSolid, CheckCircleSolid, CloseCircleSolid, ExclamationCircleOutline } from 'flowbite-svelte-icons';
-    import { formatDate } from '$lib/utils/format-date'; // ÚJ IMPORT
+    import { formatDate } from '$lib/utils/format-date';
 
     export let data;
     export let form;
@@ -24,6 +24,15 @@
         { value: 'TELEGRAM', name: 'Telegram Bot' }
     ];
 
+    // Riasztási Kategóriák
+    const elerhetoKategoriak = [
+        { id: 'politika', nev: '🏛️ Politika & Belföld' },
+        { id: 'gazdasag', nev: '💼 Gazdaság' },
+        { id: 'kulfold', nev: '🌍 Külföld' },
+        { id: 'tech', nev: '💻 Tech & Tudomány' },
+        { id: 'sport', nev: '⚽ Sport' }
+    ];
+
     let sourceTypes = [
         { value: 'RSS', name: 'Hagyományos Weboldal (RSS)' },
         { value: 'YOUTUBE', name: 'YouTube Csatorna' }
@@ -31,6 +40,9 @@
 
     let selectedProvider = data.felhasznalo?.ai_provider || 'GROQ';
     let selectedChannel = data.felhasznalo?.preferalt_csatorna || 'EMAIL';
+    
+    let selectedKategoriak: string[] = data.felhasznalo?.feliratkozott_kategoriak || [];
+    
     let selectedSourceType = 'RSS'; 
     let isOwnSourceChecked = false;
 
@@ -168,6 +180,24 @@
                                 Az értesítéseket a fiókodhoz tartozó regisztrált e-mail címre küldjük automatikusan.
                             </p>
                         </div>
+                        
+                        <div class="mt-8 bg-gray-50 dark:bg-gray-900/50 p-5 rounded-xl border border-gray-200 dark:border-gray-700">
+                            <Label class="mb-3 font-bold text-gray-900 dark:text-white text-base">Értesítési Témakörök (Miről kérsz riasztást?)</Label>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Válaszd ki azokat a témákat, amikről azonnali értesítést szeretnél kapni, ha új hír jelenik meg.</p>
+                            
+                            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                                {#each elerhetoKategoriak as kat}
+                                    <Checkbox name="feliratkozott_kategoriak" value={kat.id} bind:group={selectedKategoriak} class="p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-sm hover:bg-blue-50 dark:hover:bg-gray-700 cursor-pointer transition-colors">
+                                        <span class="font-medium text-gray-900 dark:text-white ml-2">{kat.nev}</span>
+                                    </Checkbox>
+                                {/each}
+                            </div>
+                            {#if selectedKategoriak.length === 0}
+                                <p class="text-xs text-amber-600 dark:text-amber-400 mt-3 font-medium flex items-center gap-1">
+                                    <ExclamationCircleOutline class="w-4 h-4"/> Jelenleg semmiről nem kérsz értesítést! A robot nem fog zavarni.
+                                </p>
+                            {/if}
+                        </div>
                     </div>
 
                     <div class="pt-4">
@@ -176,6 +206,35 @@
                         </Button>
                     </div>
                 </form> 
+
+                <hr class="my-8 border-gray-200 dark:border-gray-700" />
+
+                <div class="bg-indigo-50 dark:bg-indigo-900/20 p-5 rounded-xl border border-indigo-100 dark:border-indigo-800">
+                    <Label class="mb-2 font-bold text-gray-900 dark:text-white text-base">Egyedi Riasztási Kulcsszavak</Label>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                        Adj meg specifikus szavakat (pl. cégnevek, személyek). A robot azonnal értesít, ha ezek felbukkannak a médiában!
+                    </p>
+                    
+                    <form method="POST" action="?/addKeyword" use:enhance class="flex gap-2 mb-4 max-w-lg">
+                        <Input name="kulcsszo" placeholder="Pl. OTP, választás, adó..." required />
+                        <Button type="submit" color="blue">Hozzáadás</Button>
+                    </form>
+
+                    <div class="flex flex-wrap gap-2">
+                        {#each data.kulcsszavak as k}
+                            <form method="POST" action="?/deleteKeyword" use:enhance class="inline-block">
+                                <input type="hidden" name="id" value={k.id} />
+                                <button type="submit" class="border-none bg-transparent p-0 m-0 outline-none">
+                                    <Badge color="blue" class="cursor-pointer hover:bg-blue-200 dark:hover:bg-blue-900 transition-colors px-3 py-1.5 text-sm font-medium">
+                                        {k.kulcsszo} <span class="ml-2 font-bold text-red-500 hover:text-red-700">✕</span>
+                                    </Badge>
+                                </button>
+                            </form>
+                        {:else}
+                            <span class="text-sm text-gray-500 dark:text-gray-400 italic">Még nincsenek egyedi riasztási szavaid.</span>
+                        {/each}
+                    </div>
+                </div>
                 
                 <div class="mt-6 pt-6 border-t border-gray-100 dark:border-gray-700/50 flex flex-wrap gap-4">
                     <form method="POST" action="?/testNotification" use:enhance class="inline">
@@ -407,24 +466,23 @@
                     </form>
                 </div>
             {/if}
+
+            <div class="mt-12 border-t border-red-900/30 pt-8 mb-8">
+                <h3 class="text-xl font-bold text-red-500 mb-4">Fiók Kezelése (Veszélyes Zóna)</h3>
+                <div class="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800 rounded-xl p-6 flex flex-col md:flex-row justify-between items-center gap-4 shadow-sm">
+                    <div>
+                        <h4 class="text-lg font-bold text-gray-900 dark:text-white">Fiók végleges törlése</h4>
+                        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                            Ha törlöd a fiókodat, az összes adatod, hírforrásod, AI elemzésed és előfizetésed <b>azonnal és visszavonhatatlanul</b> törlődik a szervereinkről.
+                        </p>
+                    </div>
+                    <Button color="red" class="whitespace-nowrap font-bold" on:click={() => torlesModalNyitva = true}>
+                        Fiók Törlése
+                    </Button>
+                </div>
+            </div>
         </TabItem>
     </Tabs>
-
-    <div class="mt-12 border-t border-red-900/30 pt-8 mb-8">
-        <h3 class="text-xl font-bold text-red-500 mb-4">Fiók Kezelése (Veszélyes Zóna)</h3>
-        
-        <div class="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800 rounded-xl p-6 flex flex-col md:flex-row justify-between items-center gap-4 shadow-sm">
-            <div>
-                <h4 class="text-lg font-bold text-gray-900 dark:text-white">Fiók végleges törlése</h4>
-                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                    Ha törlöd a fiókodat, az összes adatod, hírforrásod, AI elemzésed és előfizetésed <b>azonnal és visszavonhatatlanul</b> törlődik a szervereinkről.
-                </p>
-            </div>
-            <Button color="red" class="whitespace-nowrap font-bold" on:click={() => torlesModalNyitva = true}>
-                Fiók Törlése
-            </Button>
-        </div>
-    </div>
 </div>
 
 <Modal bind:open={torlesModalNyitva} size="xs" autoclose={false}>

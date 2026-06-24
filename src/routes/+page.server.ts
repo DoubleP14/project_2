@@ -2,7 +2,7 @@
 import { services } from '$lib/server';
 import { fail, redirect } from '@sveltejs/kit';
 
-export const load = async ({ locals }) => {
+export const load = async ({ locals, url }) => {
     // 1. AJTÓNÁLLÓ (GUARD)
     const user = locals.user; 
 
@@ -13,100 +13,59 @@ export const load = async ({ locals }) => {
     const prisma = services.db;
     const userId = user.id;
 
-    // 2. KULCSSZAVAK LEKÉRÉSE A SZŰRÉSHEZ
-    const kulcsszavakDB = await prisma.felhasznaloKulcsszavak.findMany({
-        where: { felhasznalo_id: userId },
-        orderBy: { hozzadas_ideje: 'asc' }
-    });
-    
-    // Kicsomagolja a szavakat egy sima tömbbe (pl. ['politika', 'gta'])
-    const userKulcsszavak = kulcsszavakDB.map(k => k.kulcsszo);
+   // 2. URL Paraméterek beolvasása (Kategória és Szabad szavas keresés)
+    const aktivKategoria = url.searchParams.get('kategoria') || 'osszes';
+    const keresoKifejezes = url.searchParams.get('q') || '';
 
-    // 3. Keresés kiterjesztése ÉS Soft Delete szűrés
+    // Okos Szinonimaszótár
+    const kategoriaSzotar: Record<string, string[]> = {
+        'politika': ['politika', 'belföld', 'belfold', 'kormány', 'választás', 'parlament', 'ellenzék', 'törvény'],
+        'gazdasag': ['gazdaság', 'gazdasag', 'pénzügy', 'üzlet', 'infláció', 'adó', 'beruházás', 'kamat'],
+        'kulfold': ['külföld', 'kulfold', 'nemzetközi', 'háború', 'világ', 'eu', 'amerika'],
+        'tech': ['tech', 'technológia', 'gaming', 'tudomány', 'szoftver', 'mesterséges intelligencia', 'ai', 'űrkutatás'],
+        'sport': ['sport', 'foci', 'olimpia', 'bajnokság', 'mérkőzés', 'válogatott', 'forma-1']
+    };
+
+    let keresendoSzavak: string[] = [];
+    
+    if (aktivKategoria !== 'osszes' && kategoriaSzotar[aktivKategoria]) {
+        keresendoSzavak = [...kategoriaSzotar[aktivKategoria]];
+    }
+
+    if (keresoKifejezes) {
+        keresendoSzavak.push(keresoKifejezes);
+    }
+
+    // 3. KERESÉS FELÉPÍTÉSE
     let aiElemzesFeltetel: any = {
         hir: {
             forras: { felhasznalo_id: userId },
-            archivalt: false //
+            archivalt: false
         }
     };
 
-    // Ha vett fel kulcsszavakat, akkor szűr azokra is, mindenhol!
-    if (userKulcsszavak.length > 0) {
-        aiElemzesFeltetel.OR = userKulcsszavak.flatMap(szo => [
-            // Keresés az eredeti hír címében
+    if (keresendoSzavak.length > 0) {
+        aiElemzesFeltetel.OR = keresendoSzavak.flatMap(szo => [
             { hir: { cim: { contains: szo, mode: 'insensitive' } } },
-            // Keresés az eredeti hír tartalmában
             { hir: { tartalom: { contains: szo, mode: 'insensitive' } } },
-            // Keresés az AI által írt összefoglalóban
-            { osszefoglalo: { contains: szo, mode: 'insensitive' } }
+            { osszefoglalo: { contains: szo, mode: 'insensitive' } },
+            { kulcsszavak: { hasSome: [szo, szo.toLowerCase(), szo.toUpperCase()] } }
         ]);
     }
 
-    // 4. ELEMZÉSEK LEKÉRÉSE SZŰRŐVEL
+    // 4. ELEMZÉSEK LEKÉRÉSE
     const elemzesek = await prisma.aiElemzesek.findMany({
         where: aiElemzesFeltetel,
         orderBy: { elemzes_datuma: 'desc' },
         take: 50,
         include: {
-            hir: {
-                include: {
-                    forras: true 
-                }
-            } 
+            hir: { include: { forras: true } } 
         }
     });
 
     return {
         cikkek: elemzesek,
-        kulcsszavak: kulcsszavakDB
+        aktivKategoria: aktivKategoria,
+        keresoKifejezes: keresoKifejezes 
     };
-};
-
-export const actions = {
-    addKeyword: async ({ request, locals }) => {
-        const user = locals.user;
-        if (!user) throw redirect(303, '/login');
-
-        const prisma = services.db;
-        const formData = await request.formData();
-        const bevittSzo = formData.get('kulcsszo')?.toString().trim();
-        const userId = user.id;
-
-        if (!bevittSzo || bevittSzo.length < 2) {
-            return fail(400, { message: 'Túl rövid kulcsszó!' });
-        }
-
-        try {
-            await prisma.felhasznaloKulcsszavak.create({
-                data: {
-                    kulcsszo: bevittSzo.toLowerCase(), 
-                    felhasznalo_id: userId
-                }
-            });
-            return { success: true };
-        } catch (error) {
-            return fail(400, { message: 'Ez a kulcsszó már szerepel a listádon!' });
-        }
-    },
-
-    deleteKeyword: async ({ request, locals }) => {
-        const user = locals.user;
-        if (!user) throw redirect(303, '/login');
-
-        const prisma = services.db;
-        const formData = await request.formData();
-        const id = Number(formData.get('id'));
-
-        try {
-            await prisma.felhasznaloKulcsszavak.delete({
-                where: { 
-                    id: id,
-                    felhasznalo_id: user.id
-                }
-            });
-            return { success: true };
-        } catch (e) {
-            return fail(500, { message: 'Hiba a törlés során!' });
-        }
-    }
 };

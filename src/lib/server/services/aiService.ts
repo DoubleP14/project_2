@@ -84,14 +84,14 @@ export function createAiService(fallbackApiKey?: string) {
             1. Készíts egy maximum 1-2 mondatos, természetes és olvasmányos összefoglalót a hír tartalmáról. NE úgy fogalmazz, hogy "A cikk arról szól...", hanem közvetlenül és tényszerűen mondd el magát a hírt!
             
             2. Határozd meg a hangulatot (POZITIV, NEGATIV, SEMLEGES) az alábbi szigorú szabályok alapján:
-                - NEGATIV: Baleset, bűncselekmény, háború, áremelkedés, romlás, pazarlás, botrány, természeti katasztrófa, csúszás/késés (pl. játékoknál, filmeknél).
-                - POZITIV: Gazdasági növekedés, tudományos áttörés, árcsökkenés, javulás, üzleti vagy tőzsdei siker, sportgyőzelem, új beruházás/támogatás, egészségügyi vagy infrastrukturális fejlesztés (akkor is, ha politikus jelenti be!), várva várt megjelenés (játék, film, tech).
-                - SEMLEGES: Tényszerű események, sima bejelentések (pl. egy találkozó), pártpolitikai viták, általános törvényjavaslatok.
+                - NEGATIV: Baleset, bűncselekmény, háború, áremelkedés, romlás, pazarlás, botrány, természeti katasztrófa, forgalmi dugó, csúszás/késés (pl. játékoknál, filmeknél). KÖTELEZŐ SZABÁLY 1: Bármilyen haláleset, gyász, vagy emberi sérülés automatikusan NEGATIV! KÖTELEZŐ SZABÁLY 2: Ha az alapesemény rossz (pl. egy rendezvény elmaradása), akkor az egész hír NEGATIV, függetlenül az esetleges kárpótlástól!
+                - POZITIV: Gazdasági növekedés, tudományos áttörés, árcsökkenés, javulás, üzleti vagy tőzsdei siker, sportgyőzelem, új beruházás.
+                - SEMLEGES: Tényszerű események, sima bejelentések, pártpolitikai viták, általános törvényjavaslatok.
 
             3. HÍRÉRTÉK PONTOZÁSA (TrustScore: 0-100 között, csak egy számjegy):
-                - 0-30 pont: Clickbait, pletyka, érdektelen bulvár, lokális kis balesetek.
-                - 31-70 pont: Napi szintű, normál hírek, sportesemények.
-                - 71-100 pont: Kiemelkedő társadalmi, gazdasági események, országos horderejű törvényhozás, nagy konfliktusok.
+                - 0-30 pont: Clickbait, pletyka, érdektelen bulvár, helyi kis balesetek/dugók, állatos és "cuki" (human interest) történetek, lottószámok, időjárás.
+                - 31-70 pont: Napi szintű, normál hírek, lokális (egy várost/kerületet érintő) fejlesztések, ismert emberek halálhírei. KÖTELEZŐ SZABÁLY: Sportesemény, meccs eredménye SOHA nem kaphat 70 pontnál többet!
+                - 71-100 pont: Kiemelkedő társadalmi események, országos horderejű törvényhozás (pl. új hivatalok alapítása), nagy nemzetközi konfliktusok, makrogazdasági beszakadások vagy ugrások.
 
             4. KULCSSZAVAK (Keywords):
                 - Emelj ki 3-5 db specifikus kulcsszót a cikkből (pl. személyek, intézmények, fogalmak, cégnevek).
