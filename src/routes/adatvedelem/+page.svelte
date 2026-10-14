@@ -1,9 +1,8 @@
 <script lang="ts">
     // ─── ADATKEZELŐ ADATAI ───
-    // TODO: élesítés előtt töltsd ki a valós adatkezelő nevével és elérhetőségével!
     const ADATKEZELO = {
-        nev: '[Adatkezelő neve]',
-        email: '[adatvedelem@pelda.hu]'
+        nev: 'Pintér Patrik',
+        email: 'pinter.patrik04@gmail.com'
     };
     const HATALYOS = '2026. október 14.';
 
@@ -157,7 +156,7 @@
                 <ul class="mt-3 list-disc space-y-2 pl-5">
                     <li>A jelszavakat kizárólag egyirányú, sózott <strong>bcrypt</strong> hash formában tároljuk.</li>
                     <li>Az API kulcsokat és értesítési azonosítókat <strong>AES-256</strong> titkosítással tároljuk, a felületen sosem jelennek meg nyíltan.</li>
-                    <li>A munkamenetet <strong>HttpOnly, SameSite=Strict</strong> sütiben tárolt, aláírt JWT token azonosítja.</li>
+                    <li>A munkamenetet <strong>HttpOnly, SameSite=Strict</strong> sütiben tárolt, aláírt JWT token azonosítja; jelszócsere után vagy kérésre minden munkamenet azonnal érvénytelenné válik.</li>
                     <li>Minden felhasználó kizárólag a saját adataihoz fér hozzá; a rendszerszintű műveletek adminisztrátori jogosultsághoz kötöttek.</li>
                 </ul>
             </section>

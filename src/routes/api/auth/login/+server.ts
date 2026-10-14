@@ -47,7 +47,8 @@ export const POST = async ({ request, cookies }) => {
 
         // 3. JWT Token gyártás
         const token = jwt.sign(
-            { userId: user.id, role: user.role }, 
+            // tv = token verzió: ha az adatbázisban megnő, ez a token azonnal érvénytelenné válik
+            { userId: user.id, role: user.role, tv: user.token_verzio },
             JWT_SECRET, 
             { expiresIn: '1d' }
         );

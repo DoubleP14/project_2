@@ -52,7 +52,9 @@ export const actions: Actions = {
                 jelszo_reset_lejarat: null,
                 // Az e-mailben kapott link igazolja az e-mail cím birtoklását
                 email_verified: true,
-                verification_token: null
+                verification_token: null,
+                // Minden korábbi munkamenet (pl. egy illetéktelen által nyitott is) azonnal megszűnik
+                token_verzio: { increment: 1 }
             }
         });
 

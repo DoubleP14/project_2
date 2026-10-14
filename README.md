@@ -153,6 +153,7 @@ src/routes/                 Oldalak és API végpontok
 
 - Jelszavak bcrypt hash-sel, API kulcsok és értesítési azonosítók AES-256 titkosítással tárolva.
 - Munkamenet: aláírt JWT, HttpOnly + SameSite=Strict sütiben; letiltott fiók azonnal kijelentkeztetve.
+- Munkamenet-visszavonás token verzióval: jelszócsere vagy „Kijelentkezés minden eszközről” után minden korábbi JWT azonnal érvénytelen.
 - Jelszó-visszaállító token: csak SHA-256 hash-e tárolódik, 60 percig érvényes, egyszer használható.
 - Felhasználói felsorolás elleni védelem az elfelejtett jelszó és az újraküldés végpontokon.
 - Minden adatlekérdezés a bejelentkezett felhasználóra szűr; rendszerszintű műveletek csak adminnak.
