@@ -39,6 +39,11 @@ export const POST = async ({ request, cookies }) => {
         }
         // ──────────────────────────────────────────
 
+        // ─── ADMIN ÁLTAL LETILTOTT FIÓK ───
+        if (!user.aktiv) {
+            return json({ error: 'A fiókodat egy adminisztrátor letiltotta.' }, { status: 403 });
+        }
+
         // 3. JWT Token gyártás
         const token = jwt.sign(
             { userId: user.id, role: user.role }, 

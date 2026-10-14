@@ -112,7 +112,7 @@
                     <div>
                         <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">Mesterséges Intelligencia és API Kulcsok</h3>
                         <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                            Válaszd ki a preferált AI modellt és add meg a saját kulcsaidat a rendszerhez (BYOK). Egyelőre a gyári kulcsok aktívak, ha üresen hagyod.
+                            Válaszd ki a preferált AI modellt és add meg a saját kulcsodat a rendszerhez (BYOK). Saját AI API kulcs nélkül a rendszer nem végez hírelemzést.
                         </p>
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -122,13 +122,13 @@
                             </div>
                             <div>
                                 <Label for="api_key" class="mb-2 flex items-center gap-2">
-                                    <LockSolid class="w-4 h-4 text-gray-500" /> AI API Kulcs
+                                    <LockSolid class="w-4 h-4 text-gray-500" /> AI API Kulcs <span class="text-red-500 text-xs font-semibold">(kötelező az elemzéshez)</span>
                                 </Label>
-                                <Input 
-                                    type="text" 
-                                    id="api_key" 
-                                    name="api_key" 
-                                    placeholder="Enyém használata... Írd felül újak mentéséhez" 
+                                <Input
+                                    type="text"
+                                    id="api_key"
+                                    name="api_key"
+                                    placeholder="Illeszd be a választott AI szolgáltató API kulcsát"
                                     value={data.felhasznalo?.api_key ?? ''} 
                                 />
                             </div>
@@ -245,12 +245,6 @@
                             {:else}
                                 Riasztás Tesztelése
                             {/if}
-                        </Button>
-                    </form>
-
-                    <form method="POST" action="?/runArchiveTest" use:enhance class="inline">
-                        <Button type="submit" color="purple" class="font-semibold">
-                            Szemetes Kiürítése (Teszt)
                         </Button>
                     </form>
                 </div>

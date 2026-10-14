@@ -1,8 +1,6 @@
 <script lang="ts">
-    import { Card, Badge, Button, Input, Helper, Spinner, Toast } from 'flowbite-svelte';
-    import { SearchSolid, CogSolid, RefreshOutline, CheckCircleSolid, CloseCircleSolid } from 'flowbite-svelte-icons';
-    import { enhance } from '$app/forms'; 
-    import { fly } from 'svelte/transition';
+    import { Card, Badge, Button, Input } from 'flowbite-svelte';
+    import { SearchSolid, CogSolid, RefreshOutline } from 'flowbite-svelte-icons';
     import { formatDate } from '$lib/utils/format-date'; 
 
     export let data;
@@ -17,18 +15,6 @@
         { id: 'sport', nev: '⚽ Sport' }
     ];
 
-    let showToast = false;
-    let toastType: 'success' | 'error' = 'success';
-    let toastMessage = '';
-
-    function triggerToast(type: 'success' | 'error', message: string) {
-        toastType = type;
-        toastMessage = message;
-        showToast = true;
-        // 4 másodperc után magától eltűnik
-        setTimeout(() => { showToast = false; }, 4000);
-    }
-
     // --- GAP ANALYSIS (HIÁNYZÓ HÍREK) LOGIKA ---
     $: sajatKlaszterek = new Set(
         data.cikkek
@@ -42,28 +28,6 @@
     // --- KLIENSOLDALI PAGINATION (MUTASS TÖBBET) LOGIKA ---
     let visibleCount = 10; // Alapból csak 10 db hírt mutat meg
     $: megjelenitettCikkek = konkurenciaCikkek.slice(0, visibleCount);
-
-    // --- Kézi frissítés logikája ---
-    let isSyncing = false;
-
-    async function keziFrissites() {
-        isSyncing = true; 
-        try {
-            const response = await fetch('/api/news/sync', { method: 'GET' });
-            if (response.ok) {
-                triggerToast('success', 'Sikeres szinkronizálás! Hírek frissítése...');
-                setTimeout(() => { window.location.reload(); }, 1500);
-            } else {
-                const resData = await response.json();
-                triggerToast('error', resData.uzenet || 'Hiba történt a frissítés során!');
-            }
-        } catch (error) {
-            console.error('Hiba a hálózati kérésben:', error);
-            triggerToast('error', 'Nem sikerült elérni a szervert.');
-        } finally {
-            isSyncing = false;
-        }
-    }
 </script>
 
 <div class="container mx-auto p-4 mt-8 max-w-7xl">
@@ -72,15 +36,22 @@
         <h1 class="text-4xl font-extrabold text-gray-900 dark:text-white text-center sm:text-left">
             <span class="text-blue-600 dark:text-blue-500">Hírelemző</span>
         </h1>
-        
-        <Button on:click={keziFrissites} disabled={isSyncing} color="alternative" class="font-medium shadow-sm">
-            {#if isSyncing}
-                <Spinner class="me-2" size="4" /> Hírek letöltése és AI elemzés...
-            {:else}
-                <RefreshOutline class="w-4 h-4 me-2" /> Kézi Frissítés (Sync)
-            {/if}
-        </Button>
     </div>
+
+    <!-- BYOK FIGYELMEZTETÉS -->
+    {#if !data.vanApiKulcs}
+        <div class="mb-8 p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-800 rounded-xl">
+            <div>
+                <h3 class="font-bold text-yellow-800 dark:text-yellow-300">Nincs beállítva AI API kulcs</h3>
+                <p class="text-sm text-yellow-700 dark:text-yellow-200 mt-1">
+                    A hírek automatikus elemzéséhez (összefoglaló, hangulat, hírérték) add meg a saját AI szolgáltatód API kulcsát. Kulcs nélkül a rendszer nem végez elemzést.
+                </p>
+            </div>
+            <Button href="/settings" color="yellow" class="shrink-0 font-semibold">
+                <CogSolid class="w-4 h-4 me-2" /> API kulcs megadása
+            </Button>
+        </div>
+    {/if}
 
     <!-- SZŰRŐ MODUL -->
     <div class="mb-10 p-6 bg-gray-50 dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
@@ -225,18 +196,3 @@
 
     </div>
 </div>
-
-{#if showToast}
-    <div transition:fly={{ y: 30, duration: 300 }} class="fixed bottom-5 right-5 z-[100] max-w-xs shadow-2xl">
-        <Toast color={toastType === 'success' ? 'green' : 'red'} class="border dark:border-gray-700">
-            <svelte:fragment slot="icon">
-                {#if toastType === 'success'}
-                    <CheckCircleSolid class="w-5 h-5" />
-                {:else}
-                    <CloseCircleSolid class="w-5 h-5" />
-                {/if}
-            </svelte:fragment>
-            <span class="text-sm font-bold text-gray-900 dark:text-white">{toastMessage}</span>
-        </Toast>
-    </div>
-{/if}

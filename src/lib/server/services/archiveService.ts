@@ -4,24 +4,19 @@ import type { PrismaClient } from "@prisma/client";
 export function createArchiveService(prisma: PrismaClient) {
     return {
         // VÉGLEGES TÖRLÉS: A 7 napnál régebbi híreket fizikailag törli (Hard Delete)
-        regiHirekArchivalasa: async (napokKuszobe: number = 7) => {
+        // Visszatérési érték: a törölt hírek száma
+        regiHirekArchivalasa: async (napokKuszobe: number = 7): Promise<number> => {
             const hatarIdo = new Date();
             hatarIdo.setDate(hatarIdo.getDate() - napokKuszobe);
 
-            try {
-                // UPDATE helyett DELETE történik!
-                const eredmeny = await prisma.hirek.deleteMany({
-                    where: {
-                        datum: { lt: hatarIdo } 
-                    }
-                });
-                
-                if (eredmeny.count > 0) {
-                    console.log(`[Archiválás] 🧹 ${eredmeny.count} db ${napokKuszobe} napnál régebbi hír VÉGLEGESEN törölve (Hard Delete).`);
+            const eredmeny = await prisma.hirek.deleteMany({
+                where: {
+                    datum: { lt: hatarIdo }
                 }
-            } catch (error) {
-                console.error("[Archiválás] Hiba történt a fizikai törlés során:", error);
-            }
+            });
+
+            console.log(`[Archiválás] 🧹 ${eredmeny.count} db ${napokKuszobe} napnál régebbi hír VÉGLEGESEN törölve (Hard Delete).`);
+            return eredmeny.count;
         }
     };
 }

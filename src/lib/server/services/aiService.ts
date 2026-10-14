@@ -16,7 +16,18 @@ const AiValaszSchema = z.object({
 });
 
 export function createAiService(fallbackApiKey?: string) {
-    
+
+    // Sikertelen elemzés eredménye: a hiba mező jelzi a hívónak, hogy NE mentse el,
+    // így a hír a következő futáskor újra elemzésre kerül.
+    const hibasEredmeny = (hiba: 'QUOTA' | 'API', osszefoglalo: string) => ({
+        osszefoglalo,
+        hangulat: 'SEMLEGES' as const,
+        pontszam: 0,
+        clickbait: 0,
+        kulcsszavak: [] as string[],
+        hiba
+    });
+
     const extractJsonFromText = (text: string) => {
         const match = text.match(/\{[\s\S]*\}/);
         if (match) return JSON.parse(match[0]);
@@ -131,11 +142,11 @@ export function createAiService(fallbackApiKey?: string) {
 
                 if (modell.includes('gemini')) {
                     const text = await geminiFetch(prompt, apiKey);
-                    if (text === "QUOTA_EXCEEDED") return { osszefoglalo: "A Google API ingyenes kerete kimerült.", hangulat: "SEMLEGES", pontszam: 0, kulcsszavak: [] };
+                    if (text === "QUOTA_EXCEEDED") return hibasEredmeny('QUOTA', "A Google API ingyenes kerete kimerült.");
                     cleanText = text;
                 } else if (modell.includes('claude')) {
                     const text = await claudeFetch(prompt, apiKey, modell);
-                    if (text === "QUOTA_EXCEEDED") return { osszefoglalo: "A Claude API kerete kimerült.", hangulat: "SEMLEGES", pontszam: 0, kulcsszavak: [] };
+                    if (text === "QUOTA_EXCEEDED") return hibasEredmeny('QUOTA', "A Claude API kerete kimerült.");
                     cleanText = text;
                 } else {
                     const isGroq = modell.includes('llama');
@@ -156,11 +167,13 @@ export function createAiService(fallbackApiKey?: string) {
                 const parsedData = extractJsonFromText(cleanText);
                 
                 // TYPE-SAFE VALIDÁCIÓ ZOD-DAL (Ha hibázott az AI, a Zod kijavítja)
-                return AiValaszSchema.parse(parsedData);
+                return { ...AiValaszSchema.parse(parsedData), hiba: null };
 
             } catch (error) {
                 console.error(`Hiba a ${modell} válasz feldolgozásakor (vagy Zod validációkor):`, error);
-                return { osszefoglalo: "Nem sikerült az összefoglaló (API hiba).", hangulat: "SEMLEGES", pontszam: 0, clickbait: 0, kulcsszavak: [] };
+                // OpenAI-kompatibilis (OpenAI / Groq) kvótahiba felismerése
+                const kvotaHiba = (error as any)?.status === 429;
+                return hibasEredmeny(kvotaHiba ? 'QUOTA' : 'API', "Nem sikerült az összefoglaló (API hiba).");
             }
         },
 

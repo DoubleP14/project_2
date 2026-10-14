@@ -4,27 +4,29 @@ import { decrypt } from '../crypto';
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+// Egy futás alatt felhasználónként legfeljebb ennyi hír kerül elemzésre
+const ELEMZESI_LIMIT = 10;
+
 export function createAiModule(services: Services) {
     return {
-        ujHirekFeldolgozasa: async (userId: number = 1) => {
-            
-            // --- 1. KULCS VISSZAFEJTÉSE AZ ADOTT USERHEZ ---
-            let aktivUser = await services.db.felhasznalok.findUnique({ where: { id: userId } });
-            
-            if (!aktivUser || !aktivUser.api_key) {
-                console.log(`A(z) ${userId}. felhasználónak nincs API kulcsa. Visszaállás az Admin (1) kulcsára...`);
-                aktivUser = await services.db.felhasznalok.findUnique({ where: { id: 1 } });
-            }
+        ujHirekFeldolgozasa: async (userId: number) => {
 
-            if (!aktivUser || !aktivUser.api_key) {
-                console.log("Nincs API kulcs beállítva. AI elemzés leáll.");
+            // --- 1. KULCS VISSZAFEJTÉSE (Szigorú BYOK: csak a felhasználó saját kulcsa használható) ---
+            const user = await services.db.felhasznalok.findUnique({ where: { id: userId } });
+
+            if (!user || !user.api_key) {
+                console.log(`A(z) ${userId}. felhasználónak nincs saját AI API kulcsa. AI elemzés kihagyva.`);
                 return;
             }
 
-            const apiKey = decrypt(aktivUser.api_key);
-            
+            const apiKey = decrypt(user.api_key);
+            if (!apiKey) {
+                console.log(`A(z) ${userId}. felhasználó API kulcsa nem fejthető vissza. AI elemzés kihagyva.`);
+                return;
+            }
+
             // 4 AI szolgáltató kezelése (Alapértelmezett a GROQ)
-            const provider = aktivUser.ai_provider || 'GROQ'; 
+            const provider = user.ai_provider || 'GROQ';
             let valasztottModell = 'llama-3.1-8b-instant'; // Alapértelmezett
 
             if (provider === 'GOOGLE') valasztottModell = 'gemini-2.0-flash';
@@ -32,7 +34,7 @@ export function createAiModule(services: Services) {
             else if (provider === 'ANTHROPIC') valasztottModell = 'claude-3-haiku-20240307';
 
             // --- 2. ÚJ HÍREK LEKÉRÉSE ---
-            const hirek = await services.hirRepo.getFeldolgozatlanHirek(3, aktivUser.id);
+            const hirek = await services.hirRepo.getFeldolgozatlanHirek(ELEMZESI_LIMIT, userId);
 
             if (hirek.length === 0) return;
             console.log(`\n${hirek.length} db friss hír AI elemzése és klaszterezése indul... (Modell: ${valasztottModell})`);
@@ -44,14 +46,19 @@ export function createAiModule(services: Services) {
                     cluster_id: { not: null }, 
                     datum: { gte: tegnap }, 
                     archivalt: false,
-                    forras: { felhasznalo_id: aktivUser.id }
+                    forras: { felhasznalo_id: userId }
                 }
             });
-            
+
             // --- FELHASZNÁLÓI KULCSSZAVAK LEKÉRÉSE A RIASZTÁSHOZ ---
             const userKulcsszavak = await services.db.felhasznaloKulcsszavak.findMany({
-                where: { felhasznalo_id: aktivUser.id }
+                where: { felhasznalo_id: userId }
             });
+
+            // Gap analízis csak akkor értelmes, ha a felhasználónak van saját forrása
+            const vanSajatForras = (await services.db.hirForrasok.count({
+                where: { felhasznalo_id: userId, is_own_source: true }
+            })) > 0;
 
             // --- 4. FELDOLGOZÁS ---
             for (const hir of hirek) {  
@@ -68,6 +75,16 @@ export function createAiModule(services: Services) {
                     
                     // A) AI Elemzés és B) Klaszterezés (ITT ADTUK ÁT PLUSZBAN A hir.cim-et!)
                     const aiEredmeny = await services.ai.hirElemzese(hir.cim, szoveg, valasztottModell, apiKey);
+
+                    // Sikertelen elemzést NEM mentünk el, így a hír a következő futáskor újra sorra kerül
+                    if (aiEredmeny.hiba === 'QUOTA') {
+                        console.warn('[AI] Kvóta kimerült, a ciklus leáll. A maradék hírek a következő futáskor kerülnek sorra.');
+                        break;
+                    }
+                    if (aiEredmeny.hiba) {
+                        throw new Error('Az AI szolgáltató nem adott értékelhető választ.');
+                    }
+
                     const clusterId = await services.ai.hírKlaszterezes(hir, frissKeszHirek, apiKey, provider);
 
                     // C) Elemzés mentése és D) Klaszter összekötés (ITT ADJUK ÁT A CLICKBAIT ÉRTÉKET!)
@@ -77,7 +94,8 @@ export function createAiModule(services: Services) {
                         aiEredmeny.hangulat || "SEMLEGES",
                         valasztottModell,
                         aiEredmeny.pontszam,
-                        aiEredmeny.clickbait 
+                        aiEredmeny.clickbait,
+                        aiEredmeny.kulcsszavak
                     );
 
                     await services.db.hirek.update({
@@ -108,7 +126,7 @@ export function createAiModule(services: Services) {
                         }
                     }
 
-                    if (!riasztasOka && hir.forras_id) {
+                    if (!riasztasOka && vanSajatForras && hir.forras_id) {
                         const aktualisForras = await services.db.hirForrasok.findUnique({ where: { id: hir.forras_id } });
                         if (aktualisForras && !aktualisForras.is_own_source) {
                             const vanSajat = await services.db.hirek.findFirst({
@@ -127,7 +145,7 @@ export function createAiModule(services: Services) {
                         const klaszterHirIdk = klaszterCikkek.map((h: any) => h.id);
                         const korabbiErtesites = await services.db.ertesitesek.findFirst({
                             where: {
-                                felhasznalo_id: aktivUser.id,
+                                felhasznalo_id: userId,
                                 sikeres: true,
                                 OR: [
                                     { hir_id: { in: klaszterHirIdk } }, 
@@ -144,7 +162,7 @@ export function createAiModule(services: Services) {
 
                     if (riasztasOka !== "" && !marKuldtunk) {
                         console.log(`[Riasztás] Ok: ${riasztasOka} -> Értesítés küldése a kiválasztott csatornára...`);
-                        await services.notify.ertesitesKuldese(aktivUser.id, hir.id, {
+                        await services.notify.ertesitesKuldese(userId, hir.id, {
                             cim: `${ertesitesCimPrefix} ${hir.cim}`,
                             osszefoglalo: aiEredmeny.osszefoglalo,
                             hangulat: aiEredmeny.hangulat,
@@ -155,7 +173,7 @@ export function createAiModule(services: Services) {
                         // Értesítés sikeresen elküldve a felhasználónak
                         await services.db.rendszerNaplo.create({
                             data: { 
-                                felhasznalo_id: aktivUser.id, 
+                                felhasznalo_id: userId, 
                                 esemeny_tipus: 'NOTIFICATION_SENT', 
                                 leiras: `Riasztás elküldve (${riasztasOka}): ${hir.cim.substring(0, 50)}...` 
                             }
@@ -168,7 +186,7 @@ export function createAiModule(services: Services) {
                     // AI Elemzési hiba
                     await services.db.rendszerNaplo.create({
                         data: { 
-                            felhasznalo_id: aktivUser.id, 
+                            felhasznalo_id: userId, 
                             esemeny_tipus: 'AI_ERROR', 
                             leiras: `Hiba a hír AI elemzésekor: ${hir.cim.substring(0, 50)}...` 
                         }

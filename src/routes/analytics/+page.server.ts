@@ -24,9 +24,9 @@ export const load = async ({ locals }) => {
     });
 
     const stat = {
-        POZITIV: hangulatok.find(h => h.hangulat === 'POZITIV')?._count.hangulat || 0,
-        NEGATIV: hangulatok.find(h => h.hangulat === 'NEGATIV')?._count.hangulat || 0,
-        SEMLEGES: hangulatok.find(h => h.hangulat === 'SEMLEGES')?._count.hangulat || 0,
+        POZITIV: hangulatok.find((h: typeof hangulatok[number]) => h.hangulat === 'POZITIV')?._count.hangulat || 0,
+        NEGATIV: hangulatok.find((h: typeof hangulatok[number]) => h.hangulat === 'NEGATIV')?._count.hangulat || 0,
+        SEMLEGES: hangulatok.find((h: typeof hangulatok[number]) => h.hangulat === 'SEMLEGES')?._count.hangulat || 0,
     };
 
     // --- TRUSTSCORE STATISZTIKÁK (CSAK A SAJÁT HÍREKRE) ---

@@ -1,10 +1,8 @@
 import { json } from '@sveltejs/kit';
 import { CRON_SECRET } from '$env/static/private';
-import { PrismaClient } from '@prisma/client';
+import { jobs } from '$lib/server/jobs';
 
-// Helyben létrehozzuk a kapcsolatot
-const prisma = new PrismaClient();
-
+// Külső ütemezőből (pl. hosting cron) hívható takarító végpont
 export async function GET({ request }) {
     // 1. Biztonsági ellenőrzés
     const authHeader = request.headers.get('authorization');
@@ -13,22 +11,12 @@ export async function GET({ request }) {
     }
 
     try {
-        // 2. Dátum kiszámítása (7 nappal ezelőtt)
-        const hetNappalEzelott = new Date();
-        hetNappalEzelott.setDate(hetNappalEzelott.getDate() - 7);
-
-        // 3. Végleges törlés (Hard Delete)
-        const torlesEredmeny = await prisma.hirek.deleteMany({
-            where: {
-                datum: { 
-                    lt: hetNappalEzelott 
-                }
-            }
-        });
+        // 2. Végleges törlés (Hard Delete) - ugyanaz a logika, mint az éjszakai cronban
+        const torolt = await jobs.regiHirekTorlese('CRON');
 
         return json({
             success: true,
-            message: `Sikeres takarítás: ${torlesEredmeny.count} db régi hír véglegesen törölve.`
+            message: `Sikeres takarítás: ${torolt} db régi hír véglegesen törölve.`
         });
 
     } catch (error) {
