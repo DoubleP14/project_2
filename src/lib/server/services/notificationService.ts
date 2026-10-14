@@ -38,8 +38,7 @@ export function createNotificationService(prisma: PrismaClient) {
             content: "🔔 **Új, releváns tartalom detektálva!**",
             embeds: [{
                 title: hirAdatok.cim,
-                description: `**Hírérték (TrustScore):** ${ts.emoji} **${hirAdatok.pontszam || 0}/100** - *${ts.label}*\n\n**Összefoglaló:**\n${hirAdatok.osszefoglalo || "Nincs elérhető összefoglaló."}`,
-                url: hirAdatok.url || "http://localhost:5173",
+                description: `**Hírérték:** ${ts.emoji} **${hirAdatok.pontszam || 0}/100** - *${ts.label}*\n\n**Összefoglaló:**\n${hirAdatok.osszefoglalo || "Nincs elérhető összefoglaló."}`,                url: hirAdatok.url || "http://localhost:5173",
                 color: szin,
                 footer: {
                     text: `AI Hangulat: ${hirAdatok.hangulat || 'Ismeretlen'} | Hírfigyelő Rendszer`
@@ -81,7 +80,7 @@ export function createNotificationService(prisma: PrismaClient) {
                 
                 <div style="background: #f8fafc; padding: 15px; border-left: 4px solid ${ts.szinHex}; border-radius: 4px; margin-bottom: 15px;">
                     <p style="margin: 0 0 10px 0; font-size: 16px;">
-                        <strong>Hírérték (TrustScore):</strong> 
+                        <strong>Hírérték:</strong>
                         <span style="color: ${ts.szinHex}; font-weight: bold; font-size: 18px;">${ts.emoji} ${hirAdatok.pontszam || 0}/100</span> 
                         <span style="color: #64748b; font-size: 14px;">(${ts.label})</span>
                     </p>
@@ -123,7 +122,7 @@ export function createNotificationService(prisma: PrismaClient) {
 
         const ts = getTrustScoreKinezet(hirAdatok.pontszam);
 
-        const text = `🔔 *Új releváns tartalom!*\n\n*${hirAdatok.cim}*\n\n*TrustScore:* ${ts.emoji} *${hirAdatok.pontszam || 0}/100*\n_${ts.label}_\n\n*AI Összefoglaló:*\n${hirAdatok.osszefoglalo || "Nincs összefoglaló."}\n\n*AI Hangulat:* ${hangulatEmoji} ${hirAdatok.hangulat || "SEMLEGES"}\n\n🔗 [Cikk megnyitása](${hirAdatok.url || 'http://localhost:5173'})`;
+        const text = `🔔 *Új releváns tartalom!*\n\n*${hirAdatok.cim}*\n\n*Hírérték:* ${ts.emoji} *${hirAdatok.pontszam || 0}/100*\n_${ts.label}_\n\n*AI Összefoglaló:*\n${hirAdatok.osszefoglalo || "Nincs összefoglaló."}\n\n*AI Hangulat:* ${hangulatEmoji} ${hirAdatok.hangulat || "SEMLEGES"}\n\n🔗 [Cikk megnyitása](${hirAdatok.url || 'http://localhost:5173'})`;
 
         const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
             method: 'POST',

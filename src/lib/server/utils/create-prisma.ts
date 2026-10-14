@@ -1,28 +1,14 @@
-import {PrismaPg} from "@prisma/adapter-pg";
-import {Pool, type PoolConfig} from "pg";
+import { PrismaClient } from '@prisma/client';
 
-const POOL_KEY = Symbol.for('atom-forge.postgres.pool');
-const URL_KEY = Symbol.for('atom-forge.postgres.url');
+// Singleton minta: megelőzi, hogy fejlesztés közben beteljen az adatbázis-kapcsolat
+const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
 
-type GlobalState = {
-	[POOL_KEY]?: Pool;
-	[URL_KEY]?: string;
-};
+export const prisma = globalForPrisma.prisma || new PrismaClient();
 
-const global = globalThis as unknown as GlobalState;
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
 
-type PrismaConstructor = new (options: { adapter: any }) => any;
-
-export function createPrisma<CLIENT extends PrismaConstructor>(config: PoolConfig, client: CLIENT): InstanceType<CLIENT> {
-
-	const connectionString = config.connectionString;
-
-	if (!global[POOL_KEY] || global[URL_KEY] !== connectionString) {
-		if (global[POOL_KEY]) global[POOL_KEY].end().catch(console.error);
-		global[POOL_KEY] = new Pool(config);
-		global[URL_KEY] = connectionString;
-	}
-
-	const adapter = new PrismaPg(global[POOL_KEY] as any);
-	return new client({adapter})
+// Megtartjuk az eredeti paramétereket (config, client), hogy az index.ts ne dobjon hibát,
+// de a hibás adapter helyett egyszerűen a stabil, natív Prisma klienst adjuk vissza!
+export function createPrisma(config?: any, client?: any): any {
+    return prisma;
 }

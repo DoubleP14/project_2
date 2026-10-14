@@ -43,18 +43,29 @@ if (!(globalThis as any).__robotPilotaInditva) {
         }
     });
 
-    // ARCHIVÁLÓ TAKARÍTÓ (Fut minden hajnal 3:00-kor)
+    // VÉGLEGES TAKARÍTÓ (Fut minden hajnal 3:00-kor)
     cron.schedule('0 3 * * *', async () => {
-        console.log('\n[CRON] Éjszakai adatbázis takarítás (Soft Delete) indul...');
+        console.log('\n[CRON] Éjszakai adatbázis takarítás (Hard Delete) indul...');
         try {
-            await services.archive.regiHirekArchivalasa(7);
+            // Kiszámoljuk a 7 nappal ezelőtti dátumot
+            const hetNappalEzelott = new Date();
+            hetNappalEzelott.setDate(hetNappalEzelott.getDate() - 7);
+
+            // Fizikailag letöröljük a régi híreket az adatbázisból
+            const torlesEredmeny = await services.db.hirek.deleteMany({
+                where: { datum: { lt: hetNappalEzelott } }
+            });
             
             // NAPLÓZÁS: Éjszakai takarítás
             await services.db.rendszerNaplo.create({
-                data: { esemeny_tipus: 'SYSTEM_CLEANUP', leiras: 'Éjszakai adatbázis takarítás (7 napnál régebbi hírek) sikeresen lefutott.' }
+                data: { 
+                    esemeny_tipus: 'SYSTEM_CLEANUP', 
+                    leiras: `Éjszakai takarítás lefutott. ${torlesEredmeny.count} db 7 napnál régebbi hír VÉGLEGESEN törölve.` 
+                }
             });
+            console.log(`[CRON] Siker: ${torlesEredmeny.count} régi hír véglegesen törölve.`);
         } catch (error) {
-            console.error('[CRON] Hiba az archiválás során:', error);
+            console.error('[CRON] Hiba a végleges törlés során:', error);
         }
     });
 
