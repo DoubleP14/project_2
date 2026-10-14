@@ -4,6 +4,12 @@ import { fail, redirect } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
 import { encrypt } from '$lib/server/crypto'; 
 import { logger } from '$lib/server/services/loggerService';
+import { KATEGORIA_SZOTAR } from '$lib/kategoriak';
+
+// --- CSOMAGKORLÁTOK (Starter / ingyenes csomag) ---
+const STARTER_MAX_AKTIV_FORRAS = 3;
+const fizetosCsomag = (u: { subscription_tier: string | null; role: string }) =>
+    u.role === 'admin' || u.subscription_tier === 'pro' || u.subscription_tier === 'enterprise';
 
 export const load: PageServerLoad = async ({ locals }) => {
     // 1. AJTÓNÁLLÓ (Biztonság)
@@ -70,9 +76,15 @@ export const actions: Actions = {
         
         const aiProvider = formData.get('ai_provider')?.toString() || null;
         const preferaltCsatorna = formData.get('preferalt_csatorna')?.toString() as any || 'EMAIL';
+
+        // CSOMAGKORLÁT: Discord és Telegram riasztás csak fizetős csomagban
+        if (preferaltCsatorna !== 'EMAIL' && !fizetosCsomag(user)) {
+            return fail(403, { message: 'A Discord és Telegram riasztás csak Pro Analyst vagy Enterprise csomaggal érhető el.' });
+        }
         
         // Feliratkozott kategóriák beolvasása (Tömbként)
-        const feliratkozottKategoriak = formData.getAll('feliratkozott_kategoriak') as string[];
+        const feliratkozottKategoriak = (formData.getAll('feliratkozott_kategoriak') as string[])
+            .filter(k => k in KATEGORIA_SZOTAR);
         
         // Kulcsok kiolvasása
         let apiKey = formData.get('api_key')?.toString().trim();
@@ -169,6 +181,17 @@ export const actions: Actions = {
             return fail(400, { message: 'A név és az URL megadása kötelező!' });
         }
 
+        // CSOMAGKORLÁT: Starter csomagban csak RSS és max 3 aktív forrás
+        if (!fizetosCsomag(user)) {
+            if (tipus === 'YOUTUBE') {
+                return fail(403, { message: 'YouTube forrás csak Pro Analyst vagy Enterprise csomaggal adható hozzá.' });
+            }
+            const aktivForrasok = await services.db.hirForrasok.count({ where: { felhasznalo_id: user.id, aktiv: true } });
+            if (aktivForrasok >= STARTER_MAX_AKTIV_FORRAS) {
+                return fail(403, { message: `A Starter csomagban legfeljebb ${STARTER_MAX_AKTIV_FORRAS} aktív hírforrás lehet. Válts Pro csomagra a korlátlan forrásokért!` });
+            }
+        }
+
         try {
             await services.db.hirForrasok.create({
                 data: {
@@ -220,6 +243,17 @@ export const actions: Actions = {
         try {
             const forras = await prisma.hirForrasok.findUnique({ where: { id: id } });
             if (!forras || forras.felhasznalo_id !== user.id) return fail(403, { message: 'Nincs jogod.' });
+
+            // CSOMAGKORLÁT: aktiváláskor (inaktív -> aktív) ellenőrizzük a Starter limiteket
+            if (!forras.aktiv && !fizetosCsomag(user)) {
+                if (forras.tipus === 'YOUTUBE') {
+                    return fail(403, { message: 'YouTube forrás csak Pro Analyst vagy Enterprise csomaggal aktiválható.' });
+                }
+                const aktivForrasok = await prisma.hirForrasok.count({ where: { felhasznalo_id: user.id, aktiv: true } });
+                if (aktivForrasok >= STARTER_MAX_AKTIV_FORRAS) {
+                    return fail(403, { message: `A Starter csomagban legfeljebb ${STARTER_MAX_AKTIV_FORRAS} aktív hírforrás lehet.` });
+                }
+            }
 
             await prisma.hirForrasok.update({
                 where: { id: id },
@@ -321,7 +355,8 @@ export const actions: Actions = {
         try {
             await services.db.felhasznalok.update({
                 where: { id: user.id },
-                data: { subscription_tier: 'starter' }
+                // Visszaváltáskor a prémium értesítési csatorna is visszaáll e-mailre
+                data: { subscription_tier: 'starter', preferalt_csatorna: 'EMAIL' }
             });
 
             await logger.info('DOWNGRADE', 'Felhasználó visszaváltott az ingyenes csomagra', user.id);
@@ -340,10 +375,20 @@ export const actions: Actions = {
         const userId = locals.user.id;
         
         try {
-            await services.db.felhasznalok.delete({
-                where: { id: userId }
-            });
-            
+            // Egy tranzakcióban törlünk MINDEN személyes adatot (vagy semmit):
+            // - a felhasználó hírei (az AI elemzések kaszkádolva törlődnek)
+            // - a rendszernapló bejegyzései (pl. e-mail címet tartalmazó belépési naplók)
+            // - maga a fiók (források, kulcsszavak, értesítések kaszkádolva törlődnek)
+            await services.db.$transaction([
+                services.db.hirek.deleteMany({ where: { felhasznalo_id: userId } }),
+                services.db.rendszerNaplo.deleteMany({ where: { felhasznalo_id: userId } }),
+                services.db.felhasznalok.delete({ where: { id: userId } }),
+                // Anonim audit bejegyzés, személyes adat nélkül
+                services.db.rendszerNaplo.create({
+                    data: { esemeny_tipus: 'ACCOUNT_DELETED', leiras: 'Egy felhasználói fiók és a hozzá tartozó adatok véglegesen törölve (GDPR).' }
+                })
+            ]);
+
             // Süti törlése és "szellem" munkamenet megszüntetése a szerveren
             cookies.delete('session_token', { path: '/' });
             locals.user = undefined;

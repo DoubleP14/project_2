@@ -183,7 +183,7 @@
                         
                         <div class="mt-8 bg-gray-50 dark:bg-gray-900/50 p-5 rounded-xl border border-gray-200 dark:border-gray-700">
                             <Label class="mb-3 font-bold text-gray-900 dark:text-white text-base">Értesítési Témakörök (Miről kérsz riasztást?)</Label>
-                            <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Válaszd ki azokat a témákat, amikről azonnali értesítést szeretnél kapni, ha új hír jelenik meg.</p>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Válaszd ki azokat a témákat, amikről értesítést szeretnél kapni. Témakör alapján csak a kiemelt hírértékű (71+ pontos), kritikus hírekről küldünk riasztást.</p>
                             
                             <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                                 {#each elerhetoKategoriak as kat}
@@ -194,7 +194,7 @@
                             </div>
                             {#if selectedKategoriak.length === 0}
                                 <p class="text-xs text-amber-600 dark:text-amber-400 mt-3 font-medium flex items-center gap-1">
-                                    <ExclamationCircleOutline class="w-4 h-4"/> Jelenleg semmiről nem kérsz értesítést! A robot nem fog zavarni.
+                                    <ExclamationCircleOutline class="w-4 h-4"/> Nincs kiválasztott témakör. Riasztást csak az egyedi kulcsszavaid, a bombahírek és a gap analízis alapján kapsz.
                                 </p>
                             {/if}
                         </div>
@@ -420,7 +420,7 @@
                         <ul class="space-y-3 text-sm text-gray-700 dark:text-gray-200 mb-6 font-medium">
                             <li class="flex items-center gap-2"><CheckCircleSolid class="w-4 h-4 text-purple-600"/> Végtelen hírforrás (RSS + YT)</li>
                             <li class="flex items-center gap-2"><CheckCircleSolid class="w-4 h-4 text-purple-600"/> Azonnali Discord & Telegram botok</li>
-                            <li class="flex items-center gap-2"><CheckCircleSolid class="w-4 h-4 text-purple-600"/> TrustScore (Automatikus pontozás)</li>
+                            <li class="flex items-center gap-2"><CheckCircleSolid class="w-4 h-4 text-purple-600"/> Hírérték pontozás és Clickbait Radar</li>
                         </ul>
                     </div>
                     <Button href="/checkout?tier=pro" color="purple" class="w-full text-base font-bold shadow-md">

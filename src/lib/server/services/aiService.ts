@@ -100,7 +100,7 @@ export function createAiService(fallbackApiKey?: string) {
     };
 
     return {
-        // --- A) HÍRELEMZŐ (TRUSTSCORE ÉS KULCSSZAVAK) ---
+        // --- A) HÍRELEMZŐ (HÍRÉRTÉK, CLICKBAIT ÉS KULCSSZAVAK) ---
         hirElemzese: async (cim: string, szoveg: string, modell: string, apiKey: string) => {
             const prompt = `
             Te egy profi magyar politikai, gazdasági elemző és főszerkesztő vagy.

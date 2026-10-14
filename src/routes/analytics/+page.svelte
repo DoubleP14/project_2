@@ -130,7 +130,7 @@
     $: barOptions = {
         series: [{
             name: 'Hírek száma',
-            data: [data.trustScoreMegoszlas.kiemelkedo, data.trustScoreMegoszlas.normal, data.trustScoreMegoszlas.clickbait]
+            data: [data.hirertekMegoszlas.kiemelkedo, data.hirertekMegoszlas.normal, data.hirertekMegoszlas.alacsony]
         }],
         chart: {
             type: 'bar' as 'bar',
@@ -162,7 +162,7 @@
         legend: { show: false },
         colors: ['#31C48D', '#FACA15', '#F05252'],
         xaxis: {
-            categories: ['Kiemelkedő', 'Normál', 'Clickbait'],
+            categories: ['Kiemelkedő', 'Normál', 'Alacsony'],
             labels: {
                 style: {
                     colors: ['#9CA3AF', '#9CA3AF', '#9CA3AF'], 
@@ -229,7 +229,7 @@
 
                 <Card class="text-center shadow-lg dark:bg-gray-800">
                     <h5 class="text-lg font-bold text-gray-500 dark:text-gray-400 mb-2">Átlagos Hírérték</h5>
-                    <span class="text-5xl font-extrabold {tsSzinSema(data.atlagosTrustScore)}">{data.atlagosTrustScore} <span class="text-2xl">/100</span></span>
+                    <span class="text-5xl font-extrabold {tsSzinSema(data.atlagosHirertek)}">{data.atlagosHirertek} <span class="text-2xl">/100</span></span>
                     <p class="text-sm mt-2 text-gray-500">A te hírfolyamod súlyozott átlaga</p>
                 </Card>
 

@@ -45,7 +45,7 @@
             <p class="font-semibold text-gray-900 dark:text-white mb-2">A csomag tartalma:</p>
             <div class="flex items-center gap-2">✓ Korlátlan RSS és YouTube hírforrás</div>
             <div class="flex items-center gap-2">✓ Azonnali riasztások (Discord & Telegram)</div>
-            <div class="flex items-center gap-2">✓ TrustScore minőségi pontozás</div>
+            <div class="flex items-center gap-2">✓ Hírérték pontozás és Clickbait Radar</div>
         </div>
 
         <!-- STRIPE ÁTIRÁNYÍTÓ GOMB -->

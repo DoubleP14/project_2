@@ -141,8 +141,17 @@ export function createHirGyujtoModule(services: Services) {
     return {
         osszesForrasFrissitese: async (userId: number) => {
             let forrasok = await services.hirRepo.getAktivForrasok();
-            forrasok = forrasok.filter((forras: any) => forras.felhasznalo_id === userId);
-            
+            forrasok = forrasok
+                .filter((forras: any) => forras.felhasznalo_id === userId)
+                .sort((a: any, b: any) => a.id - b.id);
+
+            // CSOMAGKORLÁT: Starter csomagban csak az első 3 RSS forrás frissül
+            // (pl. ha a felhasználó Pro csomagról visszaváltott, de maradtak aktív forrásai)
+            const csomag = await services.db.felhasznalok.findUnique({ where: { id: userId }, select: { subscription_tier: true, role: true } });
+            if (csomag?.role !== 'admin' && csomag?.subscription_tier !== 'pro' && csomag?.subscription_tier !== 'enterprise') {
+                forrasok = forrasok.filter((forras: any) => forras.tipus === 'RSS').slice(0, 3);
+            }
+
             const userKulcsok = await services.hirRepo.getFelhasznaloKulcsok(userId);
             const userYoutubeKey = userKulcsok?.youtube_api_key ? decrypt(userKulcsok.youtube_api_key) : null;
 

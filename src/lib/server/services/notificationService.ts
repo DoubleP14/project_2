@@ -6,10 +6,10 @@ import { decrypt } from "../crypto";
 
 export function createNotificationService(prisma: PrismaClient) {
     
-    // --- SEGÉDFÜGGVÉNY: TrustScore formázása ---
-    const getTrustScoreKinezet = (score?: number) => {
+    // --- SEGÉDFÜGGVÉNY: Hírérték formázása ---
+    const getHirertekKinezet = (score?: number) => {
         const num = score || 0;
-        if (num <= 30) return { emoji: '🔴', label: 'Alacsony (Clickbait)', szinHex: '#ef4444' }; // Piros
+        if (num <= 30) return { emoji: '🔴', label: 'Alacsony', szinHex: '#ef4444' }; // Piros
         if (num <= 70) return { emoji: '🟡', label: 'Normál', szinHex: '#eab308' };              // Sárga
         return { emoji: '🟢', label: 'Kiemelkedő (Fontos!)', szinHex: '#22c55e' };               // Zöld
     };
@@ -17,14 +17,19 @@ export function createNotificationService(prisma: PrismaClient) {
     // --- SEGÉDFÜGGVÉNY: Biztonságos visszafejtés (Plain Text / Ciphertext hibrid kezelés) ---
     const biztonsagosVisszafejtes = (szoveg: string | null): string => {
         if (!szoveg) return "";
-        try {
-            return decrypt(szoveg);
-        } catch (e) {
-            // Ha a decrypt hibát dob, az azt jelenti, hogy a string nem titkosított.
-            // Ekkor visszaadja az eredeti szöveget, így nem áll le hibával a szerver!
-            return szoveg;
-        }
+        // A decrypt hiba esetén üres stringet ad vissza: ez azt jelenti, hogy a mező
+        // nem titkosított (régi, nyílt szöveges adat), ezért az eredeti szöveget használjuk
+        return decrypt(szoveg) || szoveg;
     };
+
+    // --- SEGÉDFÜGGVÉNY: HTML escape (a hírek címe/összefoglalója külső forrásból jön!) ---
+    const escapeHtml = (szoveg: unknown): string =>
+        String(szoveg ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
 
     // --- 1. Discord Webhook Helper ---
     const sendDiscordWebhook = async (webhookUrl: string, hirAdatok: any) => {
@@ -32,7 +37,7 @@ export function createNotificationService(prisma: PrismaClient) {
         if (hirAdatok.hangulat === 'POZITIV') szin = 5763719; 
         if (hirAdatok.hangulat === 'NEGATIV') szin = 15548997; 
 
-        const ts = getTrustScoreKinezet(hirAdatok.pontszam);
+        const ts = getHirertekKinezet(hirAdatok.pontszam);
 
         const payload = {
             content: "🔔 **Új, releváns tartalom detektálva!**",
@@ -71,12 +76,15 @@ export function createNotificationService(prisma: PrismaClient) {
             },
         });
 
-        const ts = getTrustScoreKinezet(hirAdatok.pontszam);
+        const ts = getHirertekKinezet(hirAdatok.pontszam);
+        const cim = escapeHtml(hirAdatok.cim);
+        const osszefoglalo = escapeHtml(hirAdatok.osszefoglalo || "Nincs elérhető összefoglaló.");
+        const url = escapeHtml(hirAdatok.url || 'http://localhost:5173');
 
         const htmlContent = `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333; line-height: 1.6;">
                 <h2 style="color: #2563eb; border-bottom: 2px solid #2563eb; padding-bottom: 10px;">🔔 Új tartalom detektálva</h2>
-                <h3 style="color: #1e293b; margin-top: 20px;">${hirAdatok.cim}</h3>
+                <h3 style="color: #1e293b; margin-top: 20px;">${cim}</h3>
                 
                 <div style="background: #f8fafc; padding: 15px; border-left: 4px solid ${ts.szinHex}; border-radius: 4px; margin-bottom: 15px;">
                     <p style="margin: 0 0 10px 0; font-size: 16px;">
@@ -91,11 +99,11 @@ export function createNotificationService(prisma: PrismaClient) {
 
                 <p>
                     <strong>AI Összefoglaló:</strong><br/>
-                    ${hirAdatok.osszefoglalo || "Nincs elérhető összefoglaló."}
+                    ${osszefoglalo}
                 </p>
-                
+
                 <div style="margin-top: 30px;">
-                    <a href="${hirAdatok.url || 'http://localhost:5173'}" style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold;">
+                    <a href="${url}" style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold;">
                         Cikk megnyitása
                     </a>
                 </div>
@@ -107,7 +115,7 @@ export function createNotificationService(prisma: PrismaClient) {
         await transporter.sendMail({
             from: `"Hírfigyelő AI" <${process.env.SMTP_USER}>`,
             to: toEmail, 
-            subject: `Riasztás [TS: ${hirAdatok.pontszam || 0}]: ${hirAdatok.cim}`,
+            subject: `Riasztás [Hírérték: ${hirAdatok.pontszam || 0}]: ${hirAdatok.cim}`,
             html: htmlContent,
         });
 
@@ -120,9 +128,10 @@ export function createNotificationService(prisma: PrismaClient) {
         if (hirAdatok.hangulat === 'POZITIV') hangulatEmoji = "🟢";
         if (hirAdatok.hangulat === 'NEGATIV') hangulatEmoji = "🔴";
 
-        const ts = getTrustScoreKinezet(hirAdatok.pontszam);
+        const ts = getHirertekKinezet(hirAdatok.pontszam);
 
-        const text = `🔔 *Új releváns tartalom!*\n\n*${hirAdatok.cim}*\n\n*Hírérték:* ${ts.emoji} *${hirAdatok.pontszam || 0}/100*\n_${ts.label}_\n\n*AI Összefoglaló:*\n${hirAdatok.osszefoglalo || "Nincs összefoglaló."}\n\n*AI Hangulat:* ${hangulatEmoji} ${hirAdatok.hangulat || "SEMLEGES"}\n\n🔗 [Cikk megnyitása](${hirAdatok.url || 'http://localhost:5173'})`;
+        // HTML mód + escape: a Markdown mód a címekben lévő _ * [ karaktereken elhasalna (400-as hiba)
+        const text = `🔔 <b>Új releváns tartalom!</b>\n\n<b>${escapeHtml(hirAdatok.cim)}</b>\n\n<b>Hírérték:</b> ${ts.emoji} <b>${hirAdatok.pontszam || 0}/100</b>\n<i>${ts.label}</i>\n\n<b>AI Összefoglaló:</b>\n${escapeHtml(hirAdatok.osszefoglalo || "Nincs összefoglaló.")}\n\n<b>AI Hangulat:</b> ${hangulatEmoji} ${escapeHtml(hirAdatok.hangulat || "SEMLEGES")}\n\n🔗 <a href="${escapeHtml(hirAdatok.url || 'http://localhost:5173')}">Cikk megnyitása</a>`;
 
         const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
             method: 'POST',
@@ -130,7 +139,7 @@ export function createNotificationService(prisma: PrismaClient) {
             body: JSON.stringify({
                 chat_id: chatId,
                 text: text,
-                parse_mode: 'Markdown'
+                parse_mode: 'HTML'
             })
         });
 

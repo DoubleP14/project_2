@@ -28,6 +28,17 @@
     // --- KLIENSOLDALI PAGINATION (MUTASS TÖBBET) LOGIKA ---
     let visibleCount = 10; // Alapból csak 10 db hírt mutat meg
     $: megjelenitettCikkek = konkurenciaCikkek.slice(0, visibleCount);
+
+    // URL építő: megtartja az aktuális szűrőket, csak a megadott paramétert írja felül
+    function szuroLink(valtozas: Record<string, string>) {
+        const params = new URLSearchParams();
+        const ertekek = { kategoria: data.aktivKategoria, q: data.keresoKifejezes, rendezes: data.rendezes, ...valtozas };
+        if (ertekek.kategoria && ertekek.kategoria !== 'osszes') params.set('kategoria', ertekek.kategoria);
+        if (ertekek.q) params.set('q', ertekek.q);
+        if (ertekek.rendezes === 'friss') params.set('rendezes', 'friss');
+        const qs = params.toString();
+        return qs ? `?${qs}` : '?';
+    }
 </script>
 
 <div class="container mx-auto p-4 mt-8 max-w-7xl">
@@ -60,7 +71,7 @@
         <div class="flex flex-wrap gap-3 mb-6">
             {#each kategoriak as kat}
                 <Button 
-                    href="?kategoria={kat.id}{data.keresoKifejezes ? `&q=${data.keresoKifejezes}` : ''}"
+                    href={szuroLink({ kategoria: kat.id })}
                     color={data.aktivKategoria === kat.id ? 'blue' : 'light'}
                     class="rounded-full px-5 py-2 font-bold shadow-sm transition-transform hover:scale-105"
                 >
@@ -81,12 +92,30 @@
             {#if data.aktivKategoria !== 'osszes'}
                 <input type="hidden" name="kategoria" value={data.aktivKategoria} />
             {/if}
+            {#if data.rendezes === 'friss'}
+                <input type="hidden" name="rendezes" value="friss" />
+            {/if}
             <Input name="q" placeholder="Keress cikkekre, személyekre..." value={data.keresoKifejezes} />
             <Button type="submit" color="blue"><SearchSolid class="w-4 h-4 mr-2"/> Keresés</Button>
             {#if data.keresoKifejezes}
-                <Button href="?kategoria={data.aktivKategoria}" color="light">Törlés</Button>
+                <Button href={szuroLink({ q: '' })} color="light">Törlés</Button>
             {/if}
         </form>
+
+        <hr class="my-6 border-gray-200 dark:border-gray-700" />
+
+        <h2 class="text-xl font-bold mb-3 text-gray-900 dark:text-white">Rendezés</h2>
+        <div class="flex flex-wrap items-center gap-3">
+            <Button href={szuroLink({ rendezes: 'fontossag' })} color={data.rendezes === 'fontossag' ? 'blue' : 'light'} class="rounded-full px-5 py-2 font-bold shadow-sm">
+                ⭐ Fontosság szerint
+            </Button>
+            <Button href={szuroLink({ rendezes: 'friss' })} color={data.rendezes === 'friss' ? 'blue' : 'light'} class="rounded-full px-5 py-2 font-bold shadow-sm">
+                🕒 Legfrissebb elöl
+            </Button>
+            {#if data.rendezes === 'fontossag'}
+                <p class="text-sm text-gray-500 dark:text-gray-400">A kiemelt hírértékű hírek előre, a clickbait és alacsony hírértékű tartalmak hátra kerülnek.</p>
+            {/if}
+        </div>
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
