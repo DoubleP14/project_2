@@ -1,12 +1,17 @@
 <script lang="ts">
     import { enhance } from '$app/forms';
     import { fade } from 'svelte/transition';
-    import { Card, Table, TableBody, TableBodyCell, TableBodyRow, TableHead, TableHeadCell, Badge, Toggle, Search, Indicator } from 'flowbite-svelte';
-    import { UsersSolid, ShieldCheckSolid, GlobeSolid, NewspaperSolid, BrainSolid } from 'flowbite-svelte-icons';
+    import { Card, Table, TableBody, TableBodyCell, TableBodyRow, TableHead, TableHeadCell, Badge, Toggle, Search, Indicator, Button, Spinner } from 'flowbite-svelte';
+    import { UsersSolid, ShieldCheckSolid, GlobeSolid, NewspaperSolid, BrainSolid, CogSolid, RefreshOutline, TrashBinOutline } from 'flowbite-svelte-icons';
     import { formatDate } from '$lib/utils/format-date';
     
     export let data;
-    
+    export let form;
+
+    let syncFut = false;
+    let cleanupFut = false;
+    let torlesMegerosites = false;
+
     // A betöltött adatok
     $: felhasznalok = data.adminFelhasznalok;
     let searchTerm = '';
@@ -65,6 +70,57 @@
         </div>
     </div>
 </div>
+
+    <!-- RENDSZERMŰVELETEK -->
+    <Card size="xl" class="w-full max-w-none mt-6 mb-6 shadow-lg border border-gray-100 dark:border-gray-700">
+        <h2 class="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2 mb-1">
+            <CogSolid class="w-5 h-5"/> Rendszerműveletek
+        </h2>
+        <p class="text-sm text-gray-500 mb-5">Az ütemezett feladatok azonnali, kézi indítása. Normál esetben a rendszer óránként frissít és hajnali 3-kor takarít.</p>
+
+        {#if form?.message}
+            <div class="mb-4 p-3 rounded-lg text-sm font-medium {form.success ? 'bg-green-50 text-green-800 dark:bg-green-900/30 dark:text-green-300' : 'bg-red-50 text-red-800 dark:bg-red-900/30 dark:text-red-300'}">
+                {form.message}
+            </div>
+        {/if}
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="p-4 rounded-lg border border-gray-200 dark:border-gray-700 flex flex-col justify-between gap-3">
+                <div>
+                    <h3 class="font-semibold text-gray-900 dark:text-white">Kézi teljes frissítés</h3>
+                    <p class="text-sm text-gray-500 mt-1">Minden aktív felhasználó forrásainak letöltése és AI elemzése (csak akiknek van saját API kulcsa). A háttérben fut, az eredmény a Rendszernaplóban jelenik meg.</p>
+                </div>
+                <form method="POST" action="?/runSync" use:enhance={() => { syncFut = true; return async ({ update }) => { await update(); syncFut = false; }; }}>
+                    <Button type="submit" color="blue" class="w-full font-semibold" disabled={syncFut || data.frissitesFolyamatban}>
+                        {#if data.frissitesFolyamatban}
+                            <Spinner class="me-2" size="4" /> Frissítés folyamatban...
+                        {:else}
+                            <RefreshOutline class="w-4 h-4 me-2" /> Frissítés indítása
+                        {/if}
+                    </Button>
+                </form>
+            </div>
+
+            <div class="p-4 rounded-lg border border-red-200 dark:border-red-900 flex flex-col justify-between gap-3">
+                <div>
+                    <h3 class="font-semibold text-red-700 dark:text-red-400">Régi hírek törlése most</h3>
+                    <p class="text-sm text-gray-500 mt-1">Az <strong>összes felhasználó</strong> 7 napnál régebbi híreinek és AI elemzéseinek végleges törlése. Nem visszavonható.</p>
+                </div>
+                {#if !torlesMegerosites}
+                    <Button color="red" outline class="w-full font-semibold" on:click={() => torlesMegerosites = true}>
+                        <TrashBinOutline class="w-4 h-4 me-2" /> Régi hírek törlése
+                    </Button>
+                {:else}
+                    <form method="POST" action="?/runCleanup" class="flex gap-2" use:enhance={() => { cleanupFut = true; return async ({ update }) => { await update(); cleanupFut = false; torlesMegerosites = false; }; }}>
+                        <Button type="submit" color="red" class="flex-1 font-semibold" disabled={cleanupFut}>
+                            {#if cleanupFut}<Spinner class="me-2" size="4" />{/if} Igen, törlöm
+                        </Button>
+                        <Button color="alternative" on:click={() => torlesMegerosites = false}>Mégse</Button>
+                    </form>
+                {/if}
+            </div>
+        </div>
+    </Card>
 
     <Card size="xl" class="w-full max-w-none shadow-lg border border-gray-100 dark:border-gray-700">
         

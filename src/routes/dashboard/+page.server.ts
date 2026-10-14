@@ -63,7 +63,11 @@ export const load = async ({ locals, url }) => {
         }
     });
 
+    // 5. BYOK ellenőrzés: saját AI kulcs nélkül nincs elemzés
+    const kulcsok = await services.hirRepo.getFelhasznaloKulcsok(userId);
+
     return {
+        vanApiKulcs: !!kulcsok?.api_key,
         cikkek: elemzesek,
         aktivKategoria: aktivKategoria,
         keresoKifejezes: keresoKifejezes 

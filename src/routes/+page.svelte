@@ -1,5 +1,31 @@
 <script lang="ts">
-    // Ide jöhet a bejelentkezés ellenőrzése vagy a Stripe csomagok betöltése
+    // Csomagok (az árak és tartalmak egyeznek a Beállítások > Előfizetés fül adataival)
+    const csomagok = [
+        {
+            nev: 'Starter',
+            ar: '0',
+            leiras: 'Ismerkedéshez és kisebb hírfigyeléshez.',
+            funkciok: ['Max 3 aktív hírforrás', 'Csak RSS alapú feldolgozás', 'Napi 1 e-mail összefoglaló'],
+            gomb: 'Ingyenes regisztráció',
+            kiemelt: false
+        },
+        {
+            nev: 'Pro Analyst',
+            ar: '2 990',
+            leiras: 'Elemzőknek, akiknek azonnali riasztás kell.',
+            funkciok: ['Végtelen hírforrás (RSS + YouTube)', 'Azonnali Discord & Telegram riasztás', 'Hírérték pontozás és Clickbait Radar'],
+            gomb: 'Regisztráció és előfizetés',
+            kiemelt: true
+        },
+        {
+            nev: 'Enterprise',
+            ar: '9 990',
+            leiras: 'Cégeknek, teljes körű médiafigyeléshez.',
+            funkciok: ['Minden Pro Analyst funkció', 'Dedikált API hozzáférés', 'Statisztikai PDF/CSV adatexport'],
+            gomb: 'Céges csatlakozás',
+            kiemelt: false
+        }
+    ];
 </script>
 
 <div class="min-h-screen bg-slate-50 font-sans text-slate-900">
@@ -71,38 +97,38 @@
                 <h2 class="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">Egyszerű, átlátható árazás</h2>
                 <p class="mt-6 text-lg leading-8 text-slate-600">Válaszd a számodra megfelelő csomagot, és vedd át az irányítást a hírfogyasztásod felett.</p>
             </div>
-            <div class="mx-auto mt-16 max-w-2xl rounded-3xl ring-1 ring-slate-200 sm:mt-20 lg:mx-0 lg:flex lg:max-w-none">
-                <div class="p-8 sm:p-10 lg:flex-auto">
-                    <h3 class="text-2xl font-bold tracking-tight text-slate-900">Pro Előfizetés</h3>
-                    <p class="mt-6 text-base leading-7 text-slate-600">Teljes hozzáférés a prémium AI modellekhez (GPT-4o, Claude 3), korlátlan hírforrás és azonnali webhook riasztások.</p>
-                    <div class="mt-10 flex items-center gap-x-4">
-                        <h4 class="flex-none text-sm font-semibold leading-6 text-blue-600">Mit tartalmaz?</h4>
-                        <div class="h-px flex-auto bg-slate-100"></div>
-                    </div>
-                    <ul class="mt-8 grid grid-cols-1 gap-4 text-sm leading-6 text-slate-600 sm:grid-cols-2 sm:gap-6">
-                        <li class="flex gap-x-3">✓ Korlátlan RSS és YouTube forrás</li>
-                        <li class="flex gap-x-3">✓ Type-safe AI analizátor</li>
-                        <li class="flex gap-x-3">✓ Clickbait radar (Hamarosan)</li>
-                        <li class="flex gap-x-3">✓ 7 napos automatikus archívum</li>
-                    </ul>
-                </div>
-                <div class="p-2 lg:mt-0 lg:w-full lg:max-w-md lg:flex-shrink-0">
-                    <div class="rounded-2xl bg-slate-50 py-10 text-center ring-1 ring-inset ring-slate-900/5 lg:flex lg:flex-col lg:justify-center lg:py-16">
-                        <div class="mx-auto max-w-xs px-8">
-                            <p class="text-base font-semibold text-slate-600">Fizess havonta, mondd le bármikor</p>
-                            <p class="mt-6 flex items-baseline justify-center gap-x-2">
-                                <span class="text-5xl font-bold tracking-tight text-slate-900">4 990</span>
-                                <span class="text-sm font-semibold leading-6 tracking-wide text-slate-600">Ft / hó</span>
+            <!-- A csomagok megegyeznek a Beállítások > Előfizetés fülön lévőkkel.
+                 Fizetni csak bejelentkezve lehet, ezért a gombok a regisztrációra visznek. -->
+            <div class="mx-auto mt-16 grid max-w-lg grid-cols-1 gap-8 sm:mt-20 lg:max-w-none lg:grid-cols-3">
+                {#each csomagok as csomag}
+                    <div class="flex flex-col justify-between rounded-3xl p-8 ring-1 {csomag.kiemelt ? 'ring-2 ring-blue-600 shadow-xl' : 'ring-slate-200'}">
+                        <div>
+                            <div class="flex items-center justify-between gap-x-4">
+                                <h3 class="text-xl font-bold text-slate-900">{csomag.nev}</h3>
+                                {#if csomag.kiemelt}
+                                    <span class="rounded-full bg-blue-600/10 px-3 py-1 text-xs font-semibold text-blue-600">Legnépszerűbb</span>
+                                {/if}
+                            </div>
+                            <p class="mt-4 text-sm leading-6 text-slate-600">{csomag.leiras}</p>
+                            <p class="mt-6 flex items-baseline gap-x-1">
+                                <span class="text-4xl font-bold tracking-tight text-slate-900">{csomag.ar}</span>
+                                <span class="text-sm font-semibold text-slate-600">Ft / hó</span>
                             </p>
-                            <form action="/api/stripe/checkout" method="POST">
-                                <button type="submit" class="mt-10 block w-full rounded-md bg-blue-600 px-3 py-2 text-center text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">
-                                    Előfizetés indítása
-                                </button>
-                            </form>
+                            <ul class="mt-8 space-y-3 text-sm leading-6 text-slate-600">
+                                {#each csomag.funkciok as funkcio}
+                                    <li class="flex gap-x-3">✓ {funkcio}</li>
+                                {/each}
+                            </ul>
                         </div>
+                        <a href="/register" class="mt-8 block rounded-md px-3 py-2 text-center text-sm font-semibold shadow-sm {csomag.kiemelt ? 'bg-blue-600 text-white hover:bg-blue-500' : 'text-blue-600 ring-1 ring-inset ring-blue-200 hover:ring-blue-300'}">
+                            {csomag.gomb}
+                        </a>
                     </div>
-                </div>
+                {/each}
             </div>
+            <p class="mt-8 text-center text-sm text-slate-500">
+                Az AI elemzéshez saját AI szolgáltatói API kulcs szükséges (BYOK). A fizetős csomagok regisztráció után a Beállításokban aktiválhatók, biztonságos bankkártyás fizetéssel (Stripe).
+            </p>
         </div>
     </section>
 </div>

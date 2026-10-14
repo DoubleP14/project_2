@@ -1,6 +1,8 @@
 // src/routes/admin/+page.server.ts
-import { redirect } from '@sveltejs/kit';
+import { fail, redirect } from '@sveltejs/kit';
 import { services } from '$lib/server/index';
+import { jobs } from '$lib/server/jobs';
+import { logger } from '$lib/server/services/loggerService';
 
 export async function load({ locals }) {
     const user = locals.user;
@@ -18,7 +20,7 @@ export async function load({ locals }) {
         }
     });
 
-    const tisztaFelhasznalok = felhasznalok.map(f => {
+    const tisztaFelhasznalok = felhasznalok.map((f: typeof felhasznalok[number]) => {
         const { password_hash, api_key, youtube_api_key, ...biztonsagosAdatok } = f;
         return biztonsagosAdatok;
     });
@@ -48,7 +50,8 @@ export async function load({ locals }) {
         adminFelhasznalok: tisztaFelhasznalok,
         statisztikak: statisztikak,
         naplok: naplok, 
-        hibasForrasok: hibasForrasok 
+        hibasForrasok: hibasForrasok,
+        frissitesFolyamatban: jobs.isFrissitesFolyamatban()
     };
 }
 
@@ -85,5 +88,38 @@ export const actions = {
         });
 
         return { success: true };
+    },
+
+    // --- KÉZI TELJES FRISSÍTÉS (minden aktív felhasználó hírei + AI elemzés) ---
+    runSync: async ({ locals }) => {
+        if (!locals.user || locals.user.role !== 'admin') {
+            return fail(403, { message: 'Nincs jogosultságod ehhez a művelethez!' });
+        }
+        if (jobs.isFrissitesFolyamatban()) {
+            return fail(423, { message: 'A frissítés már folyamatban van a háttérben...' });
+        }
+
+        await logger.info('ADMIN_SYNC', 'Kézi teljes frissítés indítva az Admin felületről', locals.user.id);
+
+        // Nem várjuk meg: felhasználónként több perc is lehet (AI kvóta szünetek),
+        // az eredmény a Rendszernaplóban jelenik meg
+        jobs.teljesFrissites('ADMIN').catch((error) => console.error('[ADMIN] Frissítési hiba:', error));
+
+        return { success: true, message: 'A teljes frissítés elindult a háttérben. Az eredmény a Rendszernaplóban jelenik meg.' };
+    },
+
+    // --- RÉGI HÍREK VÉGLEGES TÖRLÉSE (azonnal, az éjszakai takarítással azonos logika) ---
+    runCleanup: async ({ locals }) => {
+        if (!locals.user || locals.user.role !== 'admin') {
+            return fail(403, { message: 'Nincs jogosultságod ehhez a művelethez!' });
+        }
+
+        try {
+            const torolt = await jobs.regiHirekTorlese('ADMIN');
+            return { success: true, message: `Takarítás kész: ${torolt} db 7 napnál régebbi hír véglegesen törölve.` };
+        } catch (error) {
+            console.error('[ADMIN] Hiba a takarítás során:', error);
+            return fail(500, { message: 'Hiba történt a régi hírek törlése során.' });
+        }
     }
 };

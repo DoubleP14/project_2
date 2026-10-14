@@ -72,8 +72,7 @@ export function createHirRepository(prisma: PrismaClient) {
             });
         },
 
-        // JAVÍTÁS: Bekerült a 6. paraméter (clickbait), ami beíródik az adatbázisba!
-        saveAiElemzes: async (hirId: number, osszefoglalo: string, hangulat: string, modellNeve: string, pontszam: number = 0, clickbait: number = 0) => {
+        saveAiElemzes: async (hirId: number, osszefoglalo: string, hangulat: string, modellNeve: string, pontszam: number = 0, clickbait: number = 0, kulcsszavak: string[] = []) => {
             return await prisma.aiElemzesek.create({
                 data: {
                     hir_id: hirId,
@@ -81,7 +80,9 @@ export function createHirRepository(prisma: PrismaClient) {
                     hangulat: hangulat,
                     hasznalt_modell: modellNeve,
                     pontszam: pontszam,
-                    clickbait: clickbait // <--- Hozzáadva a mentéshez
+                    clickbait: clickbait,
+                    // Kisbetűsítve mentjük, így a dashboard kulcsszavas keresése egyezni fog
+                    kulcsszavak: kulcsszavak.map(k => k.toLowerCase())
                 }
             });
         }

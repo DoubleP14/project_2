@@ -313,23 +313,6 @@ export const actions: Actions = {
         }
     },
 
-    // --- 7. MANUÁLIS ARCHIVÁLÁS TESZT ---
-    runArchiveTest: async ({ locals }) => {
-        const user = locals.user;
-        if (!user) throw redirect(303, '/login');
-
-        try {
-            await services.archive.regiHirekArchivalasa(7);
-            return { 
-                success: true, 
-                message: 'A 7 napnál régebbi hírek archiválási folyamata lefutott!' 
-            };
-        } catch (error) {
-            console.error(error);
-            return fail(500, { message: 'Hiba történt a manuális archiválás során.' });
-        }
-    },
-
     // --- 8. CSOMAG LEMONDÁSA (DOWNGRADE) ---
     downgrade: async ({ locals }) => {
         const user = locals.user;
