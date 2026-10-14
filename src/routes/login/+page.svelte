@@ -12,10 +12,39 @@
     // Visszajelzés az e-mail megerősítő linkről érkezőknek
     const megerositve = $page.url.searchParams.get('verified') === 'true';
     const ervenytelenLink = $page.url.searchParams.get('error') === 'invalid_token';
+    const jelszoVisszaallitva = $page.url.searchParams.get('reset') === 'true';
+
+    // Megerősítő e-mail újraküldése (ha a fiók még nincs aktiválva)
+    let nincsMegerositve = false;
+    let ujrakuldesFolyamatban = false;
+    let ujrakuldesUzenet = '';
+    let ujrakuldesHiba = false;
+
+    const megerositoUjrakuldese = async () => {
+        ujrakuldesFolyamatban = true;
+        ujrakuldesUzenet = '';
+        try {
+            const response = await fetch('/api/auth/resend-verification', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email })
+            });
+            const data = await response.json();
+            ujrakuldesHiba = !response.ok;
+            ujrakuldesUzenet = data.message || data.error;
+        } catch (err) {
+            ujrakuldesHiba = true;
+            ujrakuldesUzenet = 'Hálózati hiba történt. Kérlek próbáld újra!';
+        } finally {
+            ujrakuldesFolyamatban = false;
+        }
+    };
 
     const handleLogin = async () => {
         hibaUzenet = '';
         sikerUzenet = '';
+        nincsMegerositve = false;
+        ujrakuldesUzenet = '';
         loading = true;
 
         try {
@@ -29,6 +58,7 @@
 
             if (!response.ok) {
                 hibaUzenet = data.error;
+                nincsMegerositve = data.code === 'EMAIL_NOT_VERIFIED';
             } else {
                 sikerUzenet = 'Sikeres bejelentkezés! Betöltés...';
                 window.location.href = '/dashboard';
@@ -58,8 +88,23 @@
         {#if ervenytelenLink}
             <Alert color="red" class="mb-4">A megerősítő link érvénytelen vagy már felhasználták.</Alert>
         {/if}
+        {#if jelszoVisszaallitva}
+            <Alert color="green" class="mb-4">Az új jelszavad elmentve! Most már bejelentkezhetsz vele.</Alert>
+        {/if}
         {#if hibaUzenet}
-            <Alert color="red" class="mb-4">{hibaUzenet}</Alert>
+            <Alert color="red" class="mb-4">
+                {hibaUzenet}
+                {#if nincsMegerositve}
+                    <div class="mt-3">
+                        <Button size="xs" color="red" outline on:click={megerositoUjrakuldese} disabled={ujrakuldesFolyamatban}>
+                            {ujrakuldesFolyamatban ? 'Küldés...' : 'Megerősítő e-mail újraküldése'}
+                        </Button>
+                    </div>
+                {/if}
+            </Alert>
+        {/if}
+        {#if ujrakuldesUzenet}
+            <Alert color={ujrakuldesHiba ? 'red' : 'green'} class="mb-4">{ujrakuldesUzenet}</Alert>
         {/if}
         {#if sikerUzenet}
             <Alert color="green" class="mb-4">{sikerUzenet}</Alert>
@@ -71,7 +116,10 @@
                 <Input type="email" name="email" id="email" placeholder="nev@ceg.hu" autocomplete="email" bind:value={email} required />
             </div>
             <div>
-                <Label for="password" class="mb-2">Jelszó</Label>
+                <div class="mb-2 flex items-center justify-between">
+                    <Label for="password">Jelszó</Label>
+                    <a href="/forgot-password" class="text-sm font-medium text-primary-600 hover:underline dark:text-primary-500">Elfelejtetted a jelszavad?</a>
+                </div>
                 <Input type="password" name="password" id="password" placeholder="••••••••" autocomplete="current-password" bind:value={password} required />
             </div>
 

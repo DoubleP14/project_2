@@ -35,8 +35,8 @@ const env = new Env(projectRoot);
 
 export const rawConfig: Config = {
     database: { connectionString: env.string("DATABASE_URL") },
-    ai: { apiKey: env.string("OPENAI_API_KEY") },
-    youtube: { apiKey: env.string("YOUTUBE_API_KEY") }
+    ai: { apiKey: env.string("OPENAI_API_KEY", "") },          // Opcionális: szigorú BYOK mellett nem használt
+    youtube: { apiKey: env.string("YOUTUBE_API_KEY", "") } // Opcionális: tartalék kulcs, ha a felhasználó nem ad meg sajátot
 };
 
 // --- 2. SERVICES RÉTEG ---
