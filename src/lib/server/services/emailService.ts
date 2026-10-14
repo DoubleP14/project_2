@@ -18,12 +18,12 @@ export const emailService = {
         const verifyUrl = `${origin}/api/auth/verify?token=${token}`;
         
         const mailOptions = {
-            from: `"Hírfigyelő AI" <${SMTP_USER}>`,
+            from: `"News Trends" <${SMTP_USER}>`,
             to: email,
-            subject: '📧 Regisztráció megerősítése - Hírfigyelő AI',
+            subject: '📧 Regisztráció megerősítése - News Trends',
             html: `
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 30px; border: 1px solid #e4e4e7; border-radius: 12px; background-color: #ffffff;">
-                    <h2 style="color: #7c3aed; text-align: center; margin-bottom: 20px;">Üdvözlünk a Hírfigyelő AI-nál!</h2>
+                    <h2 style="color: #7c3aed; text-align: center; margin-bottom: 20px;">Üdvözlünk a News Trends rendszerében!</h2>
                     <p style="color: #3f3f46; font-size: 16px; line-height: 1.5;">Köszönjük, hogy regisztráltál a rendszerünkbe! A fiókod aktiválásához és a belépéshez kérjük, kattints az alábbi gombra:</p>
                     
                     <div style="text-align: center; margin: 35px 0;">

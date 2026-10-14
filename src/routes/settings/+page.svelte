@@ -78,6 +78,10 @@
     }
 </script>
 
+<svelte:head>
+    <title>Beállítások – News Trends</title>
+</svelte:head>
+
 <div class="container mx-auto p-4 mt-8 max-w-4xl">
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
         <h1 class="text-3xl font-extrabold text-gray-900 dark:text-white flex items-center gap-3">
@@ -401,7 +405,7 @@
                         <ul class="space-y-3 text-sm text-gray-600 dark:text-gray-300 mb-6">
                             <li class="flex items-center gap-2"><CheckCircleSolid class="w-4 h-4 text-blue-500"/> Max 3 aktív hírforrás</li>
                             <li class="flex items-center gap-2"><CheckCircleSolid class="w-4 h-4 text-blue-500"/> Csak RSS alapú feldolgozás</li>
-                            <li class="flex items-center gap-2"><CheckCircleSolid class="w-4 h-4 text-blue-500"/> Napi 1 e-mail összefoglaló</li>
+                            <li class="flex items-center gap-2"><CheckCircleSolid class="w-4 h-4 text-blue-500"/> Azonnali e-mail riasztások</li>
                         </ul>
                     </div>
                     <Button color="alternative" class="w-full font-medium" disabled={data.felhasznalo?.subscription_tier === 'starter' || !data.felhasznalo?.subscription_tier}>

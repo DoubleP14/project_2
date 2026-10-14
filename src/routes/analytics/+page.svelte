@@ -183,6 +183,10 @@
     };
 </script>
 
+<svelte:head>
+    <title>Statisztika – News Trends</title>
+</svelte:head>
+
 <div class="container mx-auto p-4 mt-8 max-w-5xl">
     <h1 class="text-4xl font-extrabold mb-8 text-gray-900 dark:text-white flex items-center gap-3">
         <ChartPieSolid class="w-10 h-10 text-blue-600 dark:text-blue-500" />
