@@ -1,0 +1,16 @@
+# A build kontextusból kizárt fájlok (kisebb, gyorsabb és titokmentes image)
+node_modules
+build
+.svelte-kit
+.git
+.idea
+.claude
+generated
+backups
+
+# Titkok SOHA ne kerüljenek az image-be
+.env
+.env.*
+!.env.example
+!.env.production.example
+deploy/certs

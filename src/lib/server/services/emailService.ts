@@ -1,16 +1,5 @@
 // src/lib/server/services/emailService.ts
-import nodemailer from 'nodemailer';
-import { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS } from '$env/static/private';
-
-const transporter = nodemailer.createTransport({
-    host: SMTP_HOST,
-    port: Number(SMTP_PORT),
-    secure: false, // 587-es porthoz false kell
-    auth: {
-        user: SMTP_USER,
-        pass: SMTP_PASS,
-    },
-});
+import { levelKuldese } from './mailer';
 
 // Közös, egygombos e-mail sablon (regisztráció megerősítés, jelszó visszaállítás)
 const gombosEmailSablon = (cim: string, bevezeto: string, gombSzoveg: string, url: string, megjegyzes: string) => `
@@ -38,8 +27,7 @@ export const emailService = {
         // Legenerálja a linket, amire a felhasználónak rá kell kattintania az emailben
         const verifyUrl = `${origin}/api/auth/verify?token=${token}`;
 
-        await transporter.sendMail({
-            from: `"News Trends" <${SMTP_USER}>`,
+        await levelKuldese({
             to: email,
             subject: '📧 Regisztráció megerősítése - News Trends',
             html: gombosEmailSablon(
@@ -55,8 +43,7 @@ export const emailService = {
     sendPasswordResetEmail: async (email: string, token: string, origin: string, ervenyessegPerc: number) => {
         const resetUrl = `${origin}/reset-password?token=${token}`;
 
-        await transporter.sendMail({
-            from: `"News Trends" <${SMTP_USER}>`,
+        await levelKuldese({
             to: email,
             subject: '🔑 Jelszó visszaállítása - News Trends',
             html: gombosEmailSablon(

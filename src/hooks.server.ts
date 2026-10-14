@@ -2,9 +2,14 @@
 import cron from 'node-cron';
 import type { Handle } from '@sveltejs/kit';
 import jwt from 'jsonwebtoken';
-import { JWT_SECRET } from '$env/static/private';
+import { env } from '$env/dynamic/private';
 import { services } from '$lib/server/index';
 import { jobs } from '$lib/server/jobs';
+
+// Indításkori ellenőrzés: aláíró kulcs nélkül a hitelesítés nem működhet biztonságosan
+if (!env.JWT_SECRET) {
+    throw new Error('A JWT_SECRET környezeti változó nincs beállítva!');
+}
 
 // ==========================================
 // 1. ROBOTPILÓTA (CRON JOB)
@@ -40,7 +45,7 @@ export const handle: Handle = async ({ event, resolve }) => {
     if (token) {
         try {
             // 2. Kicsomagolja a JWT tokent a titkos kulccsal
-            const decoded = jwt.verify(token, JWT_SECRET) as any;
+            const decoded = jwt.verify(token, env.JWT_SECRET as string) as any;
 
             // 3. Lekéri a teljes felhasználót az adatbázisból!
             const dbUser = await services.db.felhasznalok.findUnique({

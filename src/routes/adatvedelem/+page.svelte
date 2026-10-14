@@ -47,10 +47,12 @@
     ];
 
     const feldolgozok = [
+        { nev: 'DigitalOcean, LLC', szerep: 'Tárhelyszolgáltatás: az alkalmazás és az adatbázis szervere. Az adatok az Európai Unióban, a frankfurti (Németország) adatközpontban tárolódnak.' },
+        { nev: 'Cloudflare, Inc.', szerep: 'DNS, HTTPS titkosítás és túlterheléses támadások elleni védelem. A forgalom áthalad a hálózatán, adatot tartósan nem tárol.' },
         { nev: 'Stripe Payments Europe Ltd.', szerep: 'Bankkártyás fizetés lebonyolítása. A kártyaadatok kizárólag a Stripe rendszerébe kerülnek, mi nem látjuk és nem tároljuk őket.' },
         { nev: 'KBOSS.hu Kft. (Számlázz.hu)', szerep: 'Elektronikus számla kiállítása és kézbesítése e-mailben.' },
         { nev: 'A felhasználó által választott AI szolgáltató (OpenAI, Anthropic, Google, Groq)', szerep: 'A hírcikkek szövegének elemzése a felhasználó saját API kulcsával. Személyes adatot nem továbbítunk.' },
-        { nev: 'E-mail szolgáltató (SMTP)', szerep: 'Regisztráció-megerősítő és riasztási e-mailek kézbesítése.' },
+        { nev: 'Resend, Inc.', szerep: 'Regisztráció-megerősítő, jelszó-visszaállító és riasztási e-mailek kézbesítése (címzett e-mail címe és a levél tartalma).' },
         { nev: 'Discord / Telegram', szerep: 'Riasztások kézbesítése, kizárólag ha a felhasználó ezt a csatornát választja.' }
     ];
 
@@ -138,7 +140,7 @@
                         </li>
                     {/each}
                 </ul>
-                <p class="mt-3 text-sm">Személyes adatot harmadik félnek nem adunk el, és marketing célra nem használunk.</p>
+                <p class="mt-3 text-sm">Az Európai Gazdasági Térségen kívüli székhelyű adatfeldolgozók esetén az adattovábbítás az Európai Bizottság által elfogadott általános szerződési feltételek (SCC) alapján történik. Személyes adatot harmadik félnek nem adunk el, és marketing célra nem használunk.</p>
             </section>
 
             <section>

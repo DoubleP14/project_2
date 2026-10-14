@@ -34,7 +34,8 @@ A **News Trends** egy B2B SaaS webalkalmazás, amely cégvezetőknek és elemző
 | Hitelesítés | JWT (HttpOnly süti), bcrypt, e-mail megerősítés |
 | AI | OpenAI SDK (OpenAI, Groq), Anthropic és Gemini REST API, Zod validáció |
 | Ütemezés | node-cron |
-| Integrációk | Stripe, Számlázz.hu, Nodemailer (SMTP), Discord webhook, Telegram Bot API |
+| Integrációk | Stripe, Számlázz.hu, Resend (HTTPS e-mail API) / Nodemailer (SMTP), Discord webhook, Telegram Bot API |
+| Üzemeltetés | Docker, Docker Compose, Caddy, Cloudflare, DigitalOcean (adapter-node) |
 
 ## Telepítés és futtatás
 
@@ -98,6 +99,10 @@ stripe listen --forward-to localhost:5173/api/stripe/webhook
 ```
 
 A kiírt `whsec_...` értéket a `STRIPE_WEBHOOK_SECRET` változóba kell másolni.
+
+## Élesítés
+
+A produkciós telepítés (DigitalOcean Droplet + Cloudflare + Docker Compose) lépésenkénti leírása a [DEPLOY.md](DEPLOY.md) fájlban található.
 
 ## Parancsok
 

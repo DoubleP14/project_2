@@ -2,7 +2,7 @@ import { json } from '@sveltejs/kit';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { services } from '$lib/server';
-import { JWT_SECRET } from '$env/static/private';
+import { env } from '$env/dynamic/private';
 import { logger } from '$lib/server/services/loggerService'; 
 
 export const POST = async ({ request, cookies }) => {
@@ -49,7 +49,7 @@ export const POST = async ({ request, cookies }) => {
         const token = jwt.sign(
             // tv = token verzió: ha az adatbázisban megnő, ez a token azonnal érvénytelenné válik
             { userId: user.id, role: user.role, tv: user.token_verzio },
-            JWT_SECRET, 
+            env.JWT_SECRET as string, 
             { expiresIn: '1d' }
         );
 
