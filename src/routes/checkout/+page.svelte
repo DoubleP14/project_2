@@ -7,6 +7,10 @@
     export let data;
 </script>
 
+<svelte:head>
+    <title>Előfizetés – News Trends</title>
+</svelte:head>
+
 <div class="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
     <Card size="md" class="shadow-xl border border-gray-200 dark:border-gray-700 p-6 md:p-8">
         

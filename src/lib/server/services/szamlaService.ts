@@ -35,7 +35,7 @@ export const szamlaService = {
             const vatAmount = ar - netPrice; // Az ÁFA pontos értéke
 
             const item = new szamlazz.Item({
-                label: `Hírfigyelő AI - ${csomagNev}`, 
+                label: `News Trends - ${csomagNev}`, 
                 quantity: 1,
                 unit: 'db',
                 vat: '27',                             

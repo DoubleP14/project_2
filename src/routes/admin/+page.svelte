@@ -26,6 +26,10 @@
     dateInput ? formatDate('%Y. $m. %d.', dateInput) : 'Ismeretlen';
 </script>
 
+<svelte:head>
+    <title>Admin központ – News Trends</title>
+</svelte:head>
+
 <div class="container mx-auto p-4 mt-8 max-w-7xl">
     
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">

@@ -46,7 +46,7 @@ export function createNotificationService(prisma: PrismaClient) {
                 description: `**Hírérték:** ${ts.emoji} **${hirAdatok.pontszam || 0}/100** - *${ts.label}*\n\n**Összefoglaló:**\n${hirAdatok.osszefoglalo || "Nincs elérhető összefoglaló."}`,                url: hirAdatok.url || "http://localhost:5173",
                 color: szin,
                 footer: {
-                    text: `AI Hangulat: ${hirAdatok.hangulat || 'Ismeretlen'} | Hírfigyelő Rendszer`
+                    text: `AI Hangulat: ${hirAdatok.hangulat || 'Ismeretlen'} | News Trends`
                 },
                 timestamp: new Date().toISOString()
             }]
@@ -108,12 +108,12 @@ export function createNotificationService(prisma: PrismaClient) {
                     </a>
                 </div>
                 <hr style="margin-top: 40px; border: 0; border-top: 1px solid #e2e8f0;" />
-                <p style="font-size: 11px; color: #94a3b8; text-align: center;">Ezt az automatikus értesítést a Hírfigyelő AI küldte.</p>
+                <p style="font-size: 11px; color: #94a3b8; text-align: center;">Ezt az automatikus értesítést a News Trends küldte.</p>
             </div>
         `;
 
         await transporter.sendMail({
-            from: `"Hírfigyelő AI" <${process.env.SMTP_USER}>`,
+            from: `"News Trends" <${process.env.SMTP_USER}>`,
             to: toEmail, 
             subject: `Riasztás [Hírérték: ${hirAdatok.pontszam || 0}]: ${hirAdatok.cim}`,
             html: htmlContent,

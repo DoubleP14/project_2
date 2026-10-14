@@ -67,7 +67,7 @@ export const actions: Actions = {
                             currency: 'huf',
                             product_data: {
                                 name: name,
-                                description: 'Hírfigyelő AI - Premium hozzáférés'
+                                description: 'News Trends - Premium hozzáférés'
                             },
                             unit_amount: price * 100, 
                         },

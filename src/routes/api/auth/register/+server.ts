@@ -14,6 +14,14 @@ export const POST = async ({ request, url }) => {
             return json({ error: 'Minden mezőt kötelező kitölteni!' }, { status: 400 });
         }
 
+        // Formai ellenőrzés (a kliens oldali validáció megkerülhető)
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            return json({ error: 'Érvénytelen e-mail cím formátum!' }, { status: 400 });
+        }
+        if (typeof password !== 'string' || password.length < 8) {
+            return json({ error: 'A jelszónak legalább 8 karakter hosszúnak kell lennie!' }, { status: 400 });
+        }
+
         const prisma = services.db;
 
         // 3. Megnézi, hogy létezik-e már ilyen email vagy username

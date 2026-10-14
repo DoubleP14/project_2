@@ -41,6 +41,10 @@
     }
 </script>
 
+<svelte:head>
+    <title>Hírek – News Trends</title>
+</svelte:head>
+
 <div class="container mx-auto p-4 mt-8 max-w-7xl">
     
     <div class="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
