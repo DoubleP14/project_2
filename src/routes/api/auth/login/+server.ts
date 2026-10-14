@@ -33,8 +33,9 @@ export const POST = async ({ request, cookies }) => {
 
         // ─── E-MAIL MEGERŐSÍTÉS ELLENŐRZÉSE ───
         if (!user.email_verified) {
-            return json({ 
-                error: 'A fiókod még nincs aktiválva! Kérlek, kattints a regisztrációkor kapott e-mailben lévő linkre.' 
+            return json({
+                error: 'A fiókod még nincs aktiválva! Kérlek, kattints a regisztrációkor kapott e-mailben lévő linkre.',
+                code: 'EMAIL_NOT_VERIFIED'
             }, { status: 403 });
         }
         // ──────────────────────────────────────────
