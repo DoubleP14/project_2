@@ -1,5 +1,19 @@
 // src/lib/server/services/aiService.ts
 import OpenAI from 'openai';
+import { z } from 'zod';
+
+// ==========================================
+// ZOD TYPE-SAFE SÉMA AZ AI VÁLASZOKHOZ
+// ==========================================
+const AiValaszSchema = z.object({
+    osszefoglalo: z.string().catch("Nem sikerült az összefoglalót generálni."),
+    hangulat: z.enum(['POZITIV', 'NEGATIV', 'SEMLEGES']).catch('SEMLEGES'),
+    // A coerce átalakítja a "85" (string) értéket 85 (szám) értékre. 
+    // Ha az AI betűket ír (pl. "száz"), az hibára fut, és a catch(50) lép életbe.
+    pontszam: z.coerce.number().min(0).max(100).catch(50),
+    clickbait: z.coerce.number().min(0).max(100).catch(0),
+    kulcsszavak: z.array(z.string()).catch([])
+});
 
 export function createAiService(fallbackApiKey?: string) {
     
@@ -76,10 +90,10 @@ export function createAiService(fallbackApiKey?: string) {
 
     return {
         // --- A) HÍRELEMZŐ (TRUSTSCORE ÉS KULCSSZAVAK) ---
-        hirElemzese: async (szoveg: string, modell: string, apiKey: string) => {
+        hirElemzese: async (cim: string, szoveg: string, modell: string, apiKey: string) => {
             const prompt = `
             Te egy profi magyar politikai, gazdasági elemző és főszerkesztő vagy.
-            Feladatod az alábbi hír objektív elemzése. Négy dolgot kell visszadnod:
+            Feladatod az alábbi hír objektív elemzése. Öt dolgot kell visszadnod:
 
             1. Készíts egy maximum 1-2 mondatos, természetes és olvasmányos összefoglalót a hír tartalmáról. NE úgy fogalmazz, hogy "A cikk arról szól...", hanem közvetlenül és tényszerűen mondd el magát a hírt!
             
@@ -88,7 +102,7 @@ export function createAiService(fallbackApiKey?: string) {
                 - POZITIV: Gazdasági növekedés, tudományos áttörés, árcsökkenés, javulás, üzleti vagy tőzsdei siker, sportgyőzelem, új beruházás.
                 - SEMLEGES: Tényszerű események, sima bejelentések, pártpolitikai viták, általános törvényjavaslatok.
 
-            3. HÍRÉRTÉK PONTOZÁSA (TrustScore: 0-100 között, csak egy számjegy):
+            3. HÍRÉRTÉK PONTOZÁSA (0-100 között, csak egy számjegy):
                 - 0-30 pont: Clickbait, pletyka, érdektelen bulvár, helyi kis balesetek/dugók, állatos és "cuki" (human interest) történetek, lottószámok, időjárás.
                 - 31-70 pont: Napi szintű, normál hírek, lokális (egy várost/kerületet érintő) fejlesztések, ismert emberek halálhírei. KÖTELEZŐ SZABÁLY: Sportesemény, meccs eredménye SOHA nem kaphat 70 pontnál többet!
                 - 71-100 pont: Kiemelkedő társadalmi események, országos horderejű törvényhozás (pl. új hivatalok alapítása), nagy nemzetközi konfliktusok, makrogazdasági beszakadások vagy ugrások.
@@ -98,23 +112,19 @@ export function createAiService(fallbackApiKey?: string) {
                 - KÖTELEZŐ SZABÁLY 1 (Téma): A listába mindig, kivétel nélkül tedd bele a hír fő kategóriáját is (pl. politika, gazdaság, belföld, külföld, sport, bulvár, tech, gaming, film, kultúra)!
                 - KÖTELEZŐ SZABÁLY 2 (Helyszín): A listába mindig tedd bele a földrajzi besorolást is, ami KIZÁRÓLAG "belföld" vagy "külföld" lehet!
                 - Ha nincs egyértelmű kulcsszó, adj vissza egy üres listát.
+
+            5. CLICKBAIT RADAR (0-100): Értékeld, hogy a hír címe mennyire hatásvadász, túlzó vagy félrevezető a tényleges tartalomhoz képest!
+                - 0-30: Teljesen tényszerű, objektív cím.
+                - 31-70: Kicsit hatásvadász, érzelemkeltő, de még fedi a valóságot.
+                - 71-100: Durva clickbait, "Nem fogod elhinni", hazug vagy erősen túlzó cím.
                 
             A válaszod KIZÁRÓLAG egy érvényes JSON objektum legyen, minden más szöveg nélkül!
-            Formátum: {"osszefoglalo": "...", "hangulat": "POZITIV", "pontszam": 85, "kulcsszavak": ["kulcsszó1", "kulcsszó2"]}
+            Formátum: {"osszefoglalo": "...", "hangulat": "POZITIV", "pontszam": 85, "clickbait": 10, "kulcsszavak": ["kulcsszó1", "kulcsszó2"]}
 
+            Hír címe: ${cim}
             Hír szövege: 
             ${szoveg}
             `;
-
-            const parseResponse = (parsedData: any) => {
-                const biztosKulcsszavak = Array.isArray(parsedData.kulcsszavak) ? parsedData.kulcsszavak : [];
-                return {
-                    osszefoglalo: parsedData.osszefoglalo || "Nem sikerült az összefoglalót generálni.",
-                    hangulat: parsedData.hangulat || "SEMLEGES",
-                    pontszam: isNaN(Number(parsedData.pontszam)) ? 50 : Number(parsedData.pontszam),
-                    kulcsszavak: biztosKulcsszavak
-                };
-            };
 
             try {
                 let cleanText = "";
@@ -144,11 +154,13 @@ export function createAiService(fallbackApiKey?: string) {
 
                 cleanText = cleanText.replace(/```json/g, '').replace(/```/g, '').trim();
                 const parsedData = extractJsonFromText(cleanText);
-                return parseResponse(parsedData);
+                
+                // TYPE-SAFE VALIDÁCIÓ ZOD-DAL (Ha hibázott az AI, a Zod kijavítja)
+                return AiValaszSchema.parse(parsedData);
 
             } catch (error) {
-                console.error(`Hiba a ${modell} válasz feldolgozásakor:`, error);
-                return { osszefoglalo: "Nem sikerült az összefoglaló (API hiba).", hangulat: "SEMLEGES", pontszam: 0, kulcsszavak: [] };
+                console.error(`Hiba a ${modell} válasz feldolgozásakor (vagy Zod validációkor):`, error);
+                return { osszefoglalo: "Nem sikerült az összefoglaló (API hiba).", hangulat: "SEMLEGES", pontszam: 0, clickbait: 0, kulcsszavak: [] };
             }
         },
 

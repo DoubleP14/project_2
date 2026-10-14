@@ -17,7 +17,7 @@
 {#if $page.data.user}
 <Navbar class="px-2 sm:px-4 py-2.5 fixed w-full z-50 top-0 left-0 border-b border-gray-200 dark:border-gray-700 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm">
     
-    <NavBrand href="/">
+    <NavBrand href="/dashboard">
         <span class="self-center whitespace-nowrap text-xl font-bold text-blue-600 dark:text-blue-500">
             AI Hírelemző
         </span>

@@ -72,15 +72,16 @@ export function createHirRepository(prisma: PrismaClient) {
             });
         },
 
-        // JAVÍTÁS: Bekerült az 5. paraméter (pontszam), ami beíródik az adatbázisba!
-        saveAiElemzes: async (hirId: number, osszefoglalo: string, hangulat: string, modellNeve: string, pontszam: number = 0) => {
+        // JAVÍTÁS: Bekerült a 6. paraméter (clickbait), ami beíródik az adatbázisba!
+        saveAiElemzes: async (hirId: number, osszefoglalo: string, hangulat: string, modellNeve: string, pontszam: number = 0, clickbait: number = 0) => {
             return await prisma.aiElemzesek.create({
                 data: {
                     hir_id: hirId,
                     osszefoglalo: osszefoglalo,
                     hangulat: hangulat,
                     hasznalt_modell: modellNeve,
-                    pontszam: pontszam 
+                    pontszam: pontszam,
+                    clickbait: clickbait // <--- Hozzáadva a mentéshez
                 }
             });
         }

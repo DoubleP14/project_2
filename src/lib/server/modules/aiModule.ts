@@ -66,17 +66,18 @@ export function createAiModule(services: Services) {
                     console.log(`- Elemzés alatt: ${hir.cim}`);
                     const szoveg = hir.tartalom || hir.cim;
                     
-                    // A) AI Elemzés és B) Klaszterezés
-                    const aiEredmeny = await services.ai.hirElemzese(szoveg, valasztottModell, apiKey);
+                    // A) AI Elemzés és B) Klaszterezés (ITT ADTUK ÁT PLUSZBAN A hir.cim-et!)
+                    const aiEredmeny = await services.ai.hirElemzese(hir.cim, szoveg, valasztottModell, apiKey);
                     const clusterId = await services.ai.hírKlaszterezes(hir, frissKeszHirek, apiKey, provider);
 
-                    // C) Elemzés mentése és D) Klaszter összekötés
+                    // C) Elemzés mentése és D) Klaszter összekötés (ITT ADJUK ÁT A CLICKBAIT ÉRTÉKET!)
                     await services.hirRepo.saveAiElemzes(
                         hir.id, 
                         aiEredmeny.osszefoglalo || "Nem sikerült összefoglalni.", 
                         aiEredmeny.hangulat || "SEMLEGES",
                         valasztottModell,
-                        aiEredmeny.pontszam 
+                        aiEredmeny.pontszam,
+                        aiEredmeny.clickbait 
                     );
 
                     await services.db.hirek.update({
@@ -90,7 +91,7 @@ export function createAiModule(services: Services) {
                     let riasztasOka = "";
                     let ertesitesCimPrefix = "";
 
-                    const klaszterCikkek = frissKeszHirek.filter(h => h.cluster_id === clusterId);
+                    const klaszterCikkek = frissKeszHirek.filter((h: any) => h.cluster_id === clusterId);
                     if (klaszterCikkek.length >= 3) {
                         riasztasOka = "Bombahír (Több forrás lehozta)";
                         ertesitesCimPrefix = "🔥 BOMBAHÍR:";
@@ -123,7 +124,7 @@ export function createAiModule(services: Services) {
                     // --- 2. VÉDELMI VONAL SPAM SZŰRŐ ---
                     let marKuldtunk = false;
                     if (riasztasOka !== "") {
-                        const klaszterHirIdk = klaszterCikkek.map(h => h.id);
+                        const klaszterHirIdk = klaszterCikkek.map((h: any) => h.id);
                         const korabbiErtesites = await services.db.ertesitesek.findFirst({
                             where: {
                                 felhasznalo_id: aktivUser.id,
