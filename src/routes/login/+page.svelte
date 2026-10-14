@@ -13,6 +13,7 @@
     const megerositve = $page.url.searchParams.get('verified') === 'true';
     const ervenytelenLink = $page.url.searchParams.get('error') === 'invalid_token';
     const jelszoVisszaallitva = $page.url.searchParams.get('reset') === 'true';
+    const mindenholKijelentkezve = $page.url.searchParams.get('logout_all') === 'true';
 
     // Megerősítő e-mail újraküldése (ha a fiók még nincs aktiválva)
     let nincsMegerositve = false;
@@ -89,7 +90,10 @@
             <Alert color="red" class="mb-4">A megerősítő link érvénytelen vagy már felhasználták.</Alert>
         {/if}
         {#if jelszoVisszaallitva}
-            <Alert color="green" class="mb-4">Az új jelszavad elmentve! Most már bejelentkezhetsz vele.</Alert>
+            <Alert color="green" class="mb-4">Az új jelszavad elmentve! Biztonsági okból minden eszközön kijelentkeztettünk – jelentkezz be az új jelszóval.</Alert>
+        {/if}
+        {#if mindenholKijelentkezve}
+            <Alert color="green" class="mb-4">Sikeresen kijelentkeztél minden eszközről.</Alert>
         {/if}
         {#if hibaUzenet}
             <Alert color="red" class="mb-4">

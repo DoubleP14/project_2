@@ -51,12 +51,18 @@ export const handle: Handle = async ({ event, resolve }) => {
                     username: true,
                     subscription_tier: true,
                     role: true,
-                    aktiv: true
+                    aktiv: true,
+                    token_verzio: true
                 }
             });
 
+            // A token verziójának egyeznie kell az adatbázisban lévővel: jelszócsere vagy
+            // "kijelentkezés minden eszközről" után a régi tokenek így azonnal érvénytelenek
+            // (a verzió nélküli, korábbi tokeneket 0-s verziónak tekintjük)
+            const verzioEgyezik = dbUser && (decoded.tv ?? 0) === dbUser.token_verzio;
+
             // 4. Beteszi a locals-ba a TÉNYLEGES adatokat (letiltott fiók azonnal kijelentkezik)
-            if (dbUser && dbUser.aktiv) {
+            if (dbUser && dbUser.aktiv && verzioEgyezik) {
                 event.locals.user = {
                     id: dbUser.id,
                     email: dbUser.email,

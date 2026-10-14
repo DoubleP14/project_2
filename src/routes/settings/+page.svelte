@@ -467,6 +467,19 @@
 
             <div class="mt-12 border-t border-red-900/30 pt-8 mb-8">
                 <h3 class="text-xl font-bold text-red-500 mb-4">Fiók Kezelése (Veszélyes Zóna)</h3>
+                <div class="mb-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 flex flex-col md:flex-row justify-between items-center gap-4 shadow-sm">
+                    <div>
+                        <h4 class="text-lg font-bold text-gray-900 dark:text-white">Kijelentkezés minden eszközről</h4>
+                        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                            Az összes aktív munkamenet azonnal megszűnik (ezen az eszközön is). Hasznos, ha elhagytál egy eszközt, vagy gyanús tevékenységet észlelsz.
+                        </p>
+                    </div>
+                    <form method="POST" action="?/kijelentkezesMindenhol">
+                        <Button type="submit" color="alternative" class="whitespace-nowrap font-bold">
+                            Kijelentkezés mindenhonnan
+                        </Button>
+                    </form>
+                </div>
                 <div class="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800 rounded-xl p-6 flex flex-col md:flex-row justify-between items-center gap-4 shadow-sm">
                     <div>
                         <h4 class="text-lg font-bold text-gray-900 dark:text-white">Fiók végleges törlése</h4>

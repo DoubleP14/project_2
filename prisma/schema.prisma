@@ -40,6 +40,11 @@ model Felhasznalok {
   jelszo_reset_token   String?   @unique
   jelszo_reset_lejarat DateTime?
 
+  // ─── MUNKAMENET VERZIÓ ───
+  // A JWT tartalmazza ezt az értéket; növelésével (jelszócsere, kijelentkezés mindenhonnan)
+  // az összes korábban kiadott munkamenet azonnal érvénytelenné válik
+  token_verzio         Int       @default(0)
+
   // --- Kategória feliratkozások az értesítésekhez ---
   feliratkozott_kategoriak String[] @default([])         
   

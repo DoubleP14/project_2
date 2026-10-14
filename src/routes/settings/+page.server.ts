@@ -368,6 +368,22 @@ export const actions: Actions = {
         throw redirect(303, '/settings?downgraded=true');
     },
 
+    // --- KIJELENTKEZÉS MINDEN ESZKÖZRŐL ---
+    kijelentkezesMindenhol: async ({ locals, cookies }) => {
+        if (!locals.user) throw redirect(303, '/login');
+
+        // A token verzió növelésével minden eddig kiadott JWT érvénytelenné válik
+        await services.db.felhasznalok.update({
+            where: { id: locals.user.id },
+            data: { token_verzio: { increment: 1 } }
+        });
+        await logger.info('LOGOUT_ALL', 'Kijelentkezés minden eszközről', locals.user.id);
+
+        cookies.delete('session_token', { path: '/' });
+        locals.user = undefined;
+        throw redirect(303, '/login?logout_all=true');
+    },
+
     // --- 9. FIÓK VÉGLEGES TÖRLÉSE (GDPR) ---
     fiokTorlese: async ({ locals, cookies }) => {
         if (!locals.user) throw redirect(303, '/login');
