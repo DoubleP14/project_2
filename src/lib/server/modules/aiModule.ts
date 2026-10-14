@@ -1,11 +1,15 @@
 // src/lib/server/modules/aiModule.ts
 import type { Services } from '../index';
-import { decrypt } from '../crypto'; 
+import { decrypt } from '../crypto';
+import { KATEGORIA_SZOTAR, illeszkedoKategoria } from '$lib/kategoriak';
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // Egy futás alatt felhasználónként legfeljebb ennyi hír kerül elemzésre
 const ELEMZESI_LIMIT = 10;
+
+// Témakör alapú riasztás csak ennél a hírértéknél (vagy felette) indul
+const TEMAKOR_RIASZTASI_KUSZOB = 71;
 
 export function createAiModule(services: Services) {
     return {
@@ -123,6 +127,15 @@ export function createAiModule(services: Services) {
                                 ertesitesCimPrefix = "🎯 RELEVÁNS TÉMA:";
                                 break;
                             }
+                        }
+                    }
+
+                    // Feliratkozott témakör: csak kiemelt hírértékű (71+) hírnél, hogy ne legyen spam
+                    if (!riasztasOka && aiEredmeny.pontszam >= TEMAKOR_RIASZTASI_KUSZOB) {
+                        const katId = illeszkedoKategoria(aiEredmeny.kulcsszavak, user.feliratkozott_kategoriak);
+                        if (katId) {
+                            riasztasOka = `Feliratkozott témakör (${KATEGORIA_SZOTAR[katId].nev})`;
+                            ertesitesCimPrefix = "📌 KIEMELT TÉMA:";
                         }
                     }
 

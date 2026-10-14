@@ -29,16 +29,16 @@ export const load = async ({ locals }) => {
         SEMLEGES: hangulatok.find((h: typeof hangulatok[number]) => h.hangulat === 'SEMLEGES')?._count.hangulat || 0,
     };
 
-    // --- TRUSTSCORE STATISZTIKÁK (CSAK A SAJÁT HÍREKRE) ---
-    // Globális TrustScore átlag lekérése
-    const trustScoreAgregacio = await prisma.aiElemzesek.aggregate({
+    // --- HÍRÉRTÉK STATISZTIKÁK (CSAK A SAJÁT HÍREKRE) ---
+    // Globális Hírérték átlag lekérése
+    const hirertekAgregacio = await prisma.aiElemzesek.aggregate({
         where: { hir: { forras: { felhasznalo_id: userId } } },
         _avg: { pontszam: true }
     });
-    const atlagosTrustScore = Math.round(trustScoreAgregacio._avg.pontszam || 0);
+    const atlagosHirertek = Math.round(hirertekAgregacio._avg.pontszam || 0);
 
     // Darabszámok kategóriák szerint (0-30, 31-70, 71-100)
-    const clickbaitDarab = await prisma.aiElemzesek.count({ where: { pontszam: { lte: 30 }, hir: { forras: { felhasznalo_id: userId } } } });
+    const alacsonyDarab = await prisma.aiElemzesek.count({ where: { pontszam: { lte: 30 }, hir: { forras: { felhasznalo_id: userId } } } });
     const normalDarab = await prisma.aiElemzesek.count({ where: { pontszam: { gt: 30, lte: 70 }, hir: { forras: { felhasznalo_id: userId } } } });
     const kiemelkedoDarab = await prisma.aiElemzesek.count({ where: { pontszam: { gt: 70 }, hir: { forras: { felhasznalo_id: userId } } } });
 
@@ -79,9 +79,9 @@ export const load = async ({ locals }) => {
         osszesElemzes,
         stat,
         forrasok: egyediForrasok,
-        atlagosTrustScore,
-        trustScoreMegoszlas: {
-            clickbait: clickbaitDarab,
+        atlagosHirertek,
+        hirertekMegoszlas: {
+            alacsony: alacsonyDarab,
             normal: normalDarab,
             kiemelkedo: kiemelkedoDarab
         }
