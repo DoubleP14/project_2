@@ -1,14 +1,14 @@
 // src/lib/server/services/szamlaService.ts
 // @ts-ignore
 import * as szamlazz from 'szamlazz.js';
-import { SZAMLAZZ_API_KEY } from '$env/static/private';
+import { env } from '$env/dynamic/private';
 
 export const szamlaService = {
     szamlaGeneralas: async (userEmail: string, username: string, csomagNev: string, ar: number) => {
         try {
             // 1. Kliens beállítása az API kulccsal
             const szamlaAgent = new szamlazz.Client({
-                authToken: SZAMLAZZ_API_KEY, 
+                authToken: env.SZAMLAZZ_API_KEY, 
                 eSzamla: true,               
                 sandbox: true                
             });

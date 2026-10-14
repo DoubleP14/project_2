@@ -1,0 +1,25 @@
+# ─── Caddy konfiguráció (Cloudflare mögött) ───
+# A Cloudflare proxy "Full (strict)" SSL módban titkosítva kapcsolódik ide,
+# a Cloudflare Origin tanúsítvánnyal (deploy/certs/origin.pem + origin.key).
+
+www.{$DOMAIN} {
+	tls /etc/caddy/certs/origin.pem /etc/caddy/certs/origin.key
+	redir https://{$DOMAIN}{uri} permanent
+}
+
+{$DOMAIN} {
+	tls /etc/caddy/certs/origin.pem /etc/caddy/certs/origin.key
+
+	encode zstd gzip
+
+	# Alapvető biztonsági fejlécek
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	reverse_proxy app:3000
+}

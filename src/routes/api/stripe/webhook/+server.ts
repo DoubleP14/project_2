@@ -1,16 +1,11 @@
 // src/routes/api/stripe/webhook/+server.ts
 import { services } from '$lib/server';
-import Stripe from 'stripe';
+import type Stripe from 'stripe';
 import type { RequestHandler } from './$types';
-import { STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET } from '$env/static/private';
-import { logger } from '$lib/server/services/loggerService'; 
+import { env } from '$env/dynamic/private';
+import { getStripe } from '$lib/server/stripe';
+import { logger } from '$lib/server/services/loggerService';
 import { szamlaService } from '$lib/server/services/szamlaService';
-
-const stripe = new Stripe(STRIPE_SECRET_KEY, {
-    apiVersion: '2026-05-27.dahlia' as any
-});
-
-const endpointSecret = STRIPE_WEBHOOK_SECRET;
 
 export const POST: RequestHandler = async ({ request }) => {
     const payload = await request.text();
@@ -19,7 +14,7 @@ export const POST: RequestHandler = async ({ request }) => {
     let event;
 
     try {
-        event = stripe.webhooks.constructEvent(payload, signature, endpointSecret);
+        event = getStripe().webhooks.constructEvent(payload, signature, env.STRIPE_WEBHOOK_SECRET ?? '');
     } catch (err: any) {
         console.error(`⚠️ Webhook aláírás hiba: ${err.message}`);
         return new Response(`Webhook Error: ${err.message}`, { status: 400 });

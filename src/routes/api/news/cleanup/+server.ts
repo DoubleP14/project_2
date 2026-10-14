@@ -1,12 +1,13 @@
 import { json } from '@sveltejs/kit';
-import { CRON_SECRET } from '$env/static/private';
+import { env } from '$env/dynamic/private';
 import { jobs } from '$lib/server/jobs';
 
 // Külső ütemezőből (pl. hosting cron) hívható takarító végpont
 export async function GET({ request }) {
     // 1. Biztonsági ellenőrzés
     const authHeader = request.headers.get('authorization');
-    if (authHeader !== `Bearer ${CRON_SECRET}`) {
+    // Ha nincs beállítva CRON_SECRET, a végpont le van tiltva (különben 'Bearer undefined' is átmenne)
+    if (!env.CRON_SECRET || authHeader !== `Bearer ${env.CRON_SECRET}`) {
         return json({ error: 'Jogosulatlan hozzáférés' }, { status: 401 });
     }
 

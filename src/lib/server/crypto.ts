@@ -4,7 +4,11 @@ import { env } from '$env/dynamic/private';
 
 // Algoritmus és a titkosító kulcs generálása a .env fájlból
 const algorithm = 'aes-256-cbc';
-const secretKey = crypto.scryptSync(env.ENCRYPTION_KEY || 'default_fallback_secret', 'salty_string', 32);
+// Kulcs nélkül nem indulunk el: egy beégetett tartalék kulcs mellett a titkosítás értelmetlen lenne
+if (!env.ENCRYPTION_KEY) {
+    throw new Error('Az ENCRYPTION_KEY környezeti változó nincs beállítva!');
+}
+const secretKey = crypto.scryptSync(env.ENCRYPTION_KEY, 'salty_string', 32);
 
 export function encrypt(text: string): string {
     const iv = crypto.randomBytes(16); // Random inicializáló vektor (IV)

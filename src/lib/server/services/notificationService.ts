@@ -1,6 +1,6 @@
 // src/lib/server/services/notificationService.ts
 import type { PrismaClient } from "@prisma/client";
-import nodemailer from "nodemailer";
+import { levelKuldese, levelkuldesBeallitva } from "./mailer";
 // ÚJ: Behozzuk a decrypt függvényt a visszafejtéshez
 import { decrypt } from "../crypto";
 
@@ -66,16 +66,6 @@ export function createNotificationService(prisma: PrismaClient) {
 
     // --- 2. E-mail Küldő Helper ---
     const sendEmailNotification = async (toEmail: string, hirAdatok: any) => {
-        const transporter = nodemailer.createTransport({
-            host: process.env.SMTP_HOST || "smtp.gmail.com",
-            port: Number(process.env.SMTP_PORT) || 587,
-            secure: false, 
-            auth: {
-                user: process.env.SMTP_USER, 
-                pass: process.env.SMTP_PASS, 
-            },
-        });
-
         const ts = getHirertekKinezet(hirAdatok.pontszam);
         const cim = escapeHtml(hirAdatok.cim);
         const osszefoglalo = escapeHtml(hirAdatok.osszefoglalo || "Nincs elérhető összefoglaló.");
@@ -112,9 +102,8 @@ export function createNotificationService(prisma: PrismaClient) {
             </div>
         `;
 
-        await transporter.sendMail({
-            from: `"News Trends" <${process.env.SMTP_USER}>`,
-            to: toEmail, 
+        await levelKuldese({
+            to: toEmail,
             subject: `Riasztás [Hírérték: ${hirAdatok.pontszam || 0}]: ${hirAdatok.cim}`,
             html: htmlContent,
         });
@@ -169,8 +158,8 @@ export function createNotificationService(prisma: PrismaClient) {
                     await sendDiscordWebhook(tisztaWebhook, hirAdatok);
                     sikeres = true;
                 } else if (user.preferalt_csatorna === 'EMAIL' && user.email) {
-                    if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
-                        uzenetLog = "Hiba: Az SMTP_USER vagy SMTP_PASS nincs beállítva a .env-ben!";
+                    if (!levelkuldesBeallitva()) {
+                        uzenetLog = "Hiba: Nincs beállítva levélküldés (RESEND_API_KEY vagy SMTP_USER/SMTP_PASS) a .env-ben!";
                     } else {
                         await sendEmailNotification(user.email, hirAdatok);
                         sikeres = true;

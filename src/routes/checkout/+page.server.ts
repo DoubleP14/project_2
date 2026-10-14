@@ -2,13 +2,7 @@
 import { services } from '$lib/server';
 import { redirect, isRedirect } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
-import Stripe from 'stripe';
-
-import { STRIPE_SECRET_KEY } from '$env/static/private';
-
-const stripe = new Stripe(STRIPE_SECRET_KEY, {
-    apiVersion: '2026-05-27.dahlia' as any
-});
+import { getStripe } from '$lib/server/stripe';
 
 export const load: PageServerLoad = async ({ url, locals }) => {
     const user = locals.user;
@@ -58,7 +52,7 @@ export const actions: Actions = {
         });
 
         try {
-            const session = await stripe.checkout.sessions.create({
+            const session = await getStripe().checkout.sessions.create({
                 payment_method_types: ['card'],
                 customer_email: teljesFelhasznalo?.email || undefined,
                 line_items: [
