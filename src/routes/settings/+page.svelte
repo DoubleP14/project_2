@@ -8,6 +8,9 @@
     export let data;
     export let form;
 
+    // A rendszer Telegram botjának felhasználóneve (a TELEGRAM_BOT_TOKEN ehhez a bothoz tartozik)
+    const TELEGRAM_BOT = 'hirgyfigyelo_ai_bot';
+
     // --- URL PARAMÉTER FIGYELŐ ---
     $: isElofizetesTab = $page.url.searchParams.get('tab') === 'elofizetes';
 
@@ -170,6 +173,11 @@
                                 <LockSolid class="w-4 h-4 text-gray-500" /> Discord Webhook URL
                             </Label>
                             <Input type="text" id="discord_webhook" name="discord_webhook" placeholder="https://discord.com/api/webhooks/..." value={data.felhasznalo?.discord_webhook ?? ''} />
+                            <ol class="mt-3 list-decimal space-y-1 pl-5 text-sm text-gray-500 dark:text-gray-400">
+                                <li>A Discord szervereden nyisd meg a kívánt csatorna beállításait (fogaskerék ikon).</li>
+                                <li><b>Integrációk → Webhookok → Új webhook</b>.</li>
+                                <li>Kattints a <b>Webhook URL másolása</b> gombra, és illeszd be ide.</li>
+                            </ol>
                         </div>
 
                         <div class="animate-fade-in {selectedChannel !== 'TELEGRAM' ? 'hidden' : ''}">
@@ -177,6 +185,17 @@
                                 <LockSolid class="w-4 h-4 text-gray-500" /> Telegram Chat ID
                             </Label>
                             <Input type="text" id="telegram_chat_id" name="telegram_chat_id" placeholder="pl. 123456789" value={data.felhasznalo?.telegram_chat_id ?? ''} />
+                            <ol class="mt-3 list-decimal space-y-1 pl-5 text-sm text-gray-500 dark:text-gray-400">
+                                <li>
+                                    Nyisd meg a botunkat: <a href="https://t.me/{TELEGRAM_BOT}" target="_blank" rel="noopener noreferrer" class="font-medium text-blue-600 hover:underline dark:text-blue-400">@{TELEGRAM_BOT}</a>,
+                                    és nyomj a <b>Start</b> gombra. <span class="text-amber-600 dark:text-amber-400">Enélkül a bot nem tud üzenetet küldeni neked!</span>
+                                </li>
+                                <li>
+                                    A saját Chat ID-dat a <a href="https://t.me/userinfobot" target="_blank" rel="noopener noreferrer" class="font-medium text-blue-600 hover:underline dark:text-blue-400">@userinfobot</a>
+                                    adja meg: írj neki bármit, és válaszul elküldi az <b>Id</b> számot.
+                                </li>
+                                <li>Másold be ide a számot, mentsd el a beállításokat, majd próbáld ki a <b>Riasztás Tesztelése</b> gombbal.</li>
+                            </ol>
                         </div>
 
                         <div class="animate-fade-in {selectedChannel !== 'EMAIL' ? 'hidden' : ''}">
