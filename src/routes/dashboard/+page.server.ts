@@ -75,8 +75,14 @@ export const load = async ({ locals, url }) => {
     // 5. BYOK ellenőrzés: saját AI kulcs nélkül nincs elemzés
     const kulcsok = await services.hirRepo.getFelhasznaloKulcsok(userId);
 
+    // 6. Gap analízis ("Hiányzó hír") csak akkor értelmes, ha van legalább egy saját forrás
+    const vanSajatForras = (await prisma.hirForrasok.count({
+        where: { felhasznalo_id: userId, is_own_source: true }
+    })) > 0;
+
     return {
         vanApiKulcs: !!kulcsok?.api_key,
+        vanSajatForras,
         cikkek: elemzesek,
         aktivKategoria: aktivKategoria,
         keresoKifejezes: keresoKifejezes,
