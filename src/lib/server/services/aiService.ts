@@ -19,13 +19,15 @@ export function createAiService(fallbackApiKey?: string) {
 
     // Sikertelen elemzés eredménye: a hiba mező jelzi a hívónak, hogy NE mentse el,
     // így a hír a következő futáskor újra elemzésre kerül.
-    const hibasEredmeny = (hiba: 'QUOTA' | 'API', osszefoglalo: string) => ({
+    // A hibaUzenet a szolgáltató tényleges hibaüzenete (pl. "401 Invalid API Key"), ez kerül a rendszernaplóba.
+    const hibasEredmeny = (hiba: 'QUOTA' | 'API', osszefoglalo: string, hibaUzenet: string = osszefoglalo) => ({
         osszefoglalo,
         hangulat: 'SEMLEGES' as const,
         pontszam: 0,
         clickbait: 0,
         kulcsszavak: [] as string[],
-        hiba
+        hiba,
+        hibaUzenet: hibaUzenet.replace(/\s+/g, ' ').slice(0, 200)
     });
 
     const extractJsonFromText = (text: string) => {
@@ -167,13 +169,17 @@ export function createAiService(fallbackApiKey?: string) {
                 const parsedData = extractJsonFromText(cleanText);
                 
                 // TYPE-SAFE VALIDÁCIÓ ZOD-DAL (Ha hibázott az AI, a Zod kijavítja)
-                return { ...AiValaszSchema.parse(parsedData), hiba: null };
+                return { ...AiValaszSchema.parse(parsedData), hiba: null, hibaUzenet: null };
 
             } catch (error) {
                 console.error(`Hiba a ${modell} válasz feldolgozásakor (vagy Zod validációkor):`, error);
                 // OpenAI-kompatibilis (OpenAI / Groq) kvótahiba felismerése
                 const kvotaHiba = (error as any)?.status === 429;
-                return hibasEredmeny(kvotaHiba ? 'QUOTA' : 'API', "Nem sikerült az összefoglaló (API hiba).");
+                return hibasEredmeny(
+                    kvotaHiba ? 'QUOTA' : 'API',
+                    "Nem sikerült az összefoglaló (API hiba).",
+                    error instanceof Error ? error.message : String(error)
+                );
             }
         },
 

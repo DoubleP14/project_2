@@ -25,14 +25,26 @@ export const jobs = {
         try {
             const users = await services.db.felhasznalok.findMany({ where: { aktiv: true } });
 
+            // Összesítő statisztika a naplóhoz
+            const ossz = { sikeres: 0, hibas: 0, kulcsNelkul: 0 };
+
             for (const user of users) {
                 console.log(`\n[${inditoja}] Feldolgozás a(z) ${user.id}. felhasználónak...`);
                 await modules.hirGyujto.osszesForrasFrissitese(user.id);
-                await modules.aiElemzo.ujHirekFeldolgozasa(user.id);
+                const stat = await modules.aiElemzo.ujHirekFeldolgozasa(user.id);
+                ossz.sikeres += stat.sikeres;
+                ossz.hibas += stat.hibas;
+                if (stat.kihagyva) ossz.kulcsNelkul++;
             }
 
+            // Ha volt AI hiba, figyelmeztető típussal naplózunk, hogy az Admin felületen is feltűnjön
+            const tipus = ossz.hibas > 0 ? 'CRON_WARNING' : 'CRON_SUCCESS';
             await services.db.rendszerNaplo.create({
-                data: { esemeny_tipus: 'CRON_SUCCESS', leiras: `Sikeres lefutás (${inditoja}). ${users.length} aktív felhasználó hírei feldolgozva.` }
+                data: {
+                    esemeny_tipus: tipus,
+                    leiras: `Lefutás vége (${inditoja}): ${users.length} aktív felhasználó, ${ossz.sikeres} sikeres AI elemzés, ${ossz.hibas} hiba` +
+                        (ossz.kulcsNelkul > 0 ? `, ${ossz.kulcsNelkul} felhasználó AI kulcs nélkül (kihagyva).` : '.')
+                }
             });
             console.log(`\n[${inditoja}] Frissítés és AI klaszterezés befejeződött!\n`);
             return true;

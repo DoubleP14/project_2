@@ -11,22 +11,53 @@ const ELEMZESI_LIMIT = 10;
 // Témakör alapú riasztás csak ennél a hírértéknél (vagy felette) indul
 const TEMAKOR_RIASZTASI_KUSZOB = 71;
 
+// Ennyi egymást követő hiba után leáll az adott felhasználó elemzése (pl. hibás kulcsnál felesleges tovább próbálkozni)
+const MAX_EGYMAS_UTANI_HIBA = 3;
+
+// Szünet a cikkek között az API sebességkorlátok kímélésére (sikeres hívás után hosszabb)
+const SZUNET_SIKER_MS = 4000;
+const SZUNET_HIBA_MS = 1000;
+
+export type ElemzesStatisztika = { sikeres: number; hibas: number; kihagyva: boolean };
+
+// A szolgáltatók kulcsainak jellemző előtagja – a leggyakoribb hiba, hogy a kulcs nem a kiválasztott szolgáltatóhoz tartozik
+const KULCS_ELOTAGOK: Record<string, string[]> = {
+    GROQ: ['gsk_'],
+    OPENAI: ['sk-'],
+    ANTHROPIC: ['sk-ant-'],
+    GOOGLE: ['AIza']
+};
+const kulcsSzolgaltatoTipp = (provider: string, apiKey: string): string => {
+    const elvart = KULCS_ELOTAGOK[provider];
+    // Az Anthropic kulcs is "sk-"-val kezdődik, ezért az OpenAI-nál külön kizárjuk
+    const illeszkedik = elvart?.some(e => apiKey.startsWith(e)) && !(provider === 'OPENAI' && apiKey.startsWith('sk-ant-'));
+    if (!elvart || illeszkedik) return '';
+    const valoszinu = Object.entries(KULCS_ELOTAGOK).find(([p, e]) => p !== provider && e.some(x => apiKey.startsWith(x)))?.[0];
+    return valoszinu
+        ? ` Tipp: a megadott kulcs ${valoszinu} kulcsnak tűnik, de a beállított szolgáltató ${provider}.`
+        : ` Tipp: a kulcs formátuma nem jellemző a(z) ${provider} szolgáltatóra – ellenőrizd a Beállításokban.`;
+};
+
 export function createAiModule(services: Services) {
     return {
-        ujHirekFeldolgozasa: async (userId: number) => {
+        ujHirekFeldolgozasa: async (userId: number): Promise<ElemzesStatisztika> => {
+            const stat: ElemzesStatisztika = { sikeres: 0, hibas: 0, kihagyva: false };
 
             // --- 1. KULCS VISSZAFEJTÉSE (Szigorú BYOK: csak a felhasználó saját kulcsa használható) ---
             const user = await services.db.felhasznalok.findUnique({ where: { id: userId } });
 
             if (!user || !user.api_key) {
                 console.log(`A(z) ${userId}. felhasználónak nincs saját AI API kulcsa. AI elemzés kihagyva.`);
-                return;
+                return { ...stat, kihagyva: true };
             }
 
             const apiKey = decrypt(user.api_key);
             if (!apiKey) {
                 console.log(`A(z) ${userId}. felhasználó API kulcsa nem fejthető vissza. AI elemzés kihagyva.`);
-                return;
+                await services.db.rendszerNaplo.create({
+                    data: { felhasznalo_id: userId, esemeny_tipus: 'AI_ERROR', leiras: 'Az AI API kulcs nem fejthető vissza (megváltozott az ENCRYPTION_KEY?) – a kulcsot újra meg kell adni a Beállításokban.' }
+                });
+                return { ...stat, kihagyva: true };
             }
 
             // 4 AI szolgáltató kezelése (Alapértelmezett a GROQ)
@@ -40,7 +71,7 @@ export function createAiModule(services: Services) {
             // --- 2. ÚJ HÍREK LEKÉRÉSE ---
             const hirek = await services.hirRepo.getFeldolgozatlanHirek(ELEMZESI_LIMIT, userId);
 
-            if (hirek.length === 0) return;
+            if (hirek.length === 0) return stat;
             console.log(`\n${hirek.length} db friss hír AI elemzése és klaszterezése indul... (Modell: ${valasztottModell})`);
 
             // --- 3. REFERENCIA HÍREK LEKÉRÉSE ---
@@ -65,7 +96,11 @@ export function createAiModule(services: Services) {
             })) > 0;
 
             // --- 4. FELDOLGOZÁS ---
-            for (const hir of hirek) {  
+            let egymasUtaniHibak = 0;
+            let utolsoHibaUzenet = '';
+
+            for (const [index, hir] of hirek.entries()) {
+                let sikerult = false;
                 try {
                     // --- 1. VÉDELMI VONAL (Race Condition ellen) ---
                     const marFeldolgozva = await services.db.aiElemzesek.findFirst({ where: { hir_id: hir.id } });
@@ -83,10 +118,13 @@ export function createAiModule(services: Services) {
                     // Sikertelen elemzést NEM mentünk el, így a hír a következő futáskor újra sorra kerül
                     if (aiEredmeny.hiba === 'QUOTA') {
                         console.warn('[AI] Kvóta kimerült, a ciklus leáll. A maradék hírek a következő futáskor kerülnek sorra.');
+                        await services.db.rendszerNaplo.create({
+                            data: { felhasznalo_id: userId, esemeny_tipus: 'AI_QUOTA', leiras: `Az AI szolgáltató kerete kimerült (${provider}), a maradék hírek a következő futáskor kerülnek sorra. ${aiEredmeny.hibaUzenet ?? ''}`.trim() }
+                        });
                         break;
                     }
                     if (aiEredmeny.hiba) {
-                        throw new Error('Az AI szolgáltató nem adott értékelhető választ.');
+                        throw new Error(aiEredmeny.hibaUzenet || 'Az AI szolgáltató nem adott értékelhető választ.');
                     }
 
                     const clusterId = await services.ai.hírKlaszterezes(hir, frissKeszHirek, apiKey, provider);
@@ -193,23 +231,50 @@ export function createAiModule(services: Services) {
                         });
                     }
                     
+                    sikerult = true;
                 } catch (error) {
                     console.error(`Hiba a '${hir.cim}' hír elemzésekor:`, error);
-                    
-                    // AI Elemzési hiba
+                    utolsoHibaUzenet = error instanceof Error ? error.message : String(error);
+
+                    // AI elemzési hiba – a pontos okkal, hogy az Admin felületen is látható legyen
                     await services.db.rendszerNaplo.create({
-                        data: { 
-                            felhasznalo_id: userId, 
-                            esemeny_tipus: 'AI_ERROR', 
-                            leiras: `Hiba a hír AI elemzésekor: ${hir.cim.substring(0, 50)}...` 
+                        data: {
+                            felhasznalo_id: userId,
+                            esemeny_tipus: 'AI_ERROR',
+                            leiras: `Hiba a hír AI elemzésekor („${hir.cim.substring(0, 40)}…”): ${utolsoHibaUzenet.substring(0, 200)}`
                         }
                     });
                 }
-                
-                // 4 másodperc szünet az API kvóták kímélése érdekében
-                await sleep(4000);
+
+                if (sikerult) {
+                    stat.sikeres++;
+                    egymasUtaniHibak = 0;
+                } else {
+                    stat.hibas++;
+                    egymasUtaniHibak++;
+
+                    // Több egymást követő hiba: valószínűleg rendszerszintű ok (rossz kulcs, kivezetett modell) – leállunk
+                    if (egymasUtaniHibak >= MAX_EGYMAS_UTANI_HIBA) {
+                        const tipp = kulcsSzolgaltatoTipp(provider, apiKey);
+                        console.warn(`[AI] ${MAX_EGYMAS_UTANI_HIBA} egymás utáni hiba, a(z) ${userId}. felhasználó elemzése leáll.`);
+                        await services.db.rendszerNaplo.create({
+                            data: {
+                                felhasznalo_id: userId,
+                                esemeny_tipus: 'AI_ABORT',
+                                leiras: `${MAX_EGYMAS_UTANI_HIBA} egymás utáni hiba miatt az elemzés leállt (${provider}, ${valasztottModell}). Utolsó hiba: ${utolsoHibaUzenet.substring(0, 150)}.${tipp}`
+                            }
+                        });
+                        break;
+                    }
+                }
+
+                // Szünet az API kvóták kímélése érdekében (az utolsó cikk után nem várunk)
+                if (index < hirek.length - 1) {
+                    await sleep(sikerult ? SZUNET_SIKER_MS : SZUNET_HIBA_MS);
+                }
             }
-            console.log("AI elemzési és klaszterezési ciklus befejeződött!\n");
+            console.log(`AI elemzési ciklus befejeződött: ${stat.sikeres} sikeres, ${stat.hibas} hibás.\n`);
+            return stat;
         }
     };
 }
