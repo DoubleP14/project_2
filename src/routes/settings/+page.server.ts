@@ -5,6 +5,7 @@ import type { PageServerLoad, Actions } from './$types';
 import { encrypt } from '$lib/server/crypto'; 
 import { logger } from '$lib/server/services/loggerService';
 import { KATEGORIA_SZOTAR } from '$lib/kategoriak';
+import { AI_SZOLGALTATOK, ervenyesModellNev } from '$lib/aiModellek';
 
 // --- CSOMAGKORLÁTOK (Starter / ingyenes csomag) ---
 const STARTER_MAX_AKTIV_FORRAS = 3;
@@ -74,7 +75,13 @@ export const actions: Actions = {
         const userId = user.id;
         const formData = await request.formData();
         
-        const aiProvider = formData.get('ai_provider')?.toString() || null;
+        // AI szolgáltató és opcionális egyedi modell (ismeretlen szolgáltatót nem fogadunk el)
+        const bekuldottProvider = formData.get('ai_provider')?.toString() ?? '';
+        const aiProvider = (AI_SZOLGALTATOK as readonly string[]).includes(bekuldottProvider) ? bekuldottProvider : null;
+        const aiModell = formData.get('ai_modell')?.toString().trim() || null;
+        if (aiModell && !ervenyesModellNev(aiModell)) {
+            return fail(400, { message: 'Érvénytelen modellnév! Csak betűt, számot és a . - _ / : karaktereket tartalmazhatja.' });
+        }
         const preferaltCsatorna = formData.get('preferalt_csatorna')?.toString() as any || 'EMAIL';
 
         // CSOMAGKORLÁT: Discord és Telegram riasztás csak fizetős csomagban
@@ -94,6 +101,7 @@ export const actions: Actions = {
 
         let dataToUpdate: any = {
             ai_provider: aiProvider,
+            ai_modell: aiModell,
             preferalt_csatorna: preferaltCsatorna,
             feliratkozott_kategoriak: feliratkozottKategoriak
         };

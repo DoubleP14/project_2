@@ -49,8 +49,9 @@ model Felhasznalok {
   feliratkozott_kategoriak String[] @default([])         
   
   // --- BYOK Beállítások ---
-  ai_provider         String?   
-  api_key             String?   
+  ai_provider         String?
+  ai_modell           String?   // Opcionális egyedi modell (üresen a szolgáltató alapértelmezett modellje)
+  api_key             String?
   custom_ai_endpoint  String?   
   youtube_api_key     String?   
 

@@ -4,6 +4,7 @@
     import { Card, Input, Label, Button, Alert, Select, Toggle, Badge, Modal, Tabs, TabItem, Table, TableBody, TableBodyCell, TableBodyRow, TableHead, TableHeadCell, Checkbox } from 'flowbite-svelte';
     import { InfoCircleSolid, LockSolid, BellSolid, GlobeSolid, EditOutline, TrashBinOutline, UserCircleSolid, AdjustmentsVerticalSolid, CreditCardSolid, CheckCircleSolid, CloseCircleSolid, ExclamationCircleOutline } from 'flowbite-svelte-icons';
     import { formatDate } from '$lib/utils/format-date';
+    import { ALAPERTELMEZETT_MODELLEK } from '$lib/aiModellek';
 
     export let data;
     export let form;
@@ -15,11 +16,19 @@
     $: isElofizetesTab = $page.url.searchParams.get('tab') === 'elofizetes';
 
     let aiProviders = [
-        { value: 'GROQ', name: 'Groq (Llama 3.1 - Leggyorsabb)' },
+        { value: 'GROQ', name: 'Groq' },
         { value: 'OPENAI', name: 'OpenAI (ChatGPT)' },
         { value: 'GOOGLE', name: 'Google (Gemini)' },
         { value: 'ANTHROPIC', name: 'Anthropic (Claude)' }
     ];
+
+    // Hol kérhető API kulcs az egyes szolgáltatóknál
+    const kulcsIgenylesLinkek: Record<string, string> = {
+        GROQ: 'https://console.groq.com/keys',
+        OPENAI: 'https://platform.openai.com/api-keys',
+        GOOGLE: 'https://aistudio.google.com/apikey',
+        ANTHROPIC: 'https://console.anthropic.com/settings/keys'
+    };
 
     let notificationChannels = [
         { value: 'EMAIL', name: 'E-mail üzenet' },
@@ -136,10 +145,28 @@
                                     id="api_key"
                                     name="api_key"
                                     placeholder="Illeszd be a választott AI szolgáltató API kulcsát"
-                                    value={data.felhasznalo?.api_key ?? ''} 
+                                    value={data.felhasznalo?.api_key ?? ''}
                                 />
+                                <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                                    Kulcsot itt kérhetsz:
+                                    <a href={kulcsIgenylesLinkek[selectedProvider]} target="_blank" rel="noopener noreferrer" class="font-medium text-blue-600 hover:underline dark:text-blue-400">{kulcsIgenylesLinkek[selectedProvider]?.replace('https://', '')}</a>
+                                </p>
                             </div>
-                            
+
+                            <div class="md:col-span-2">
+                                <Label for="ai_modell" class="mb-2">AI Modell <span class="text-xs font-normal text-gray-500">(opcionális)</span></Label>
+                                <Input
+                                    type="text"
+                                    id="ai_modell"
+                                    name="ai_modell"
+                                    placeholder={`Alapértelmezett: ${ALAPERTELMEZETT_MODELLEK[selectedProvider as keyof typeof ALAPERTELMEZETT_MODELLEK] ?? ''}`}
+                                    value={data.felhasznalo?.ai_modell ?? ''}
+                                />
+                                <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                                    Hagyd üresen az ajánlott modellhez. Akkor írj be egyedi modellnevet, ha a szolgáltató kivezette az alapértelmezettet, vagy másikat szeretnél használni.
+                                </p>
+                            </div>
+
                             <div class="md:col-span-2 mt-2">
                                 <Label for="youtube_api_key" class="mb-2 flex items-center gap-2">
                                     <LockSolid class="w-4 h-4 text-gray-500" /> YouTube API Kulcs
