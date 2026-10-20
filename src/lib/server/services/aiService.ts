@@ -37,9 +37,9 @@ export function createAiService(fallbackApiKey?: string) {
     };
 
     // --- 1. NATÍV GOOGLE (GEMINI) HÍVÁS ---
-    const geminiFetch = async (prompt: string, apiKey: string): Promise<string> => {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
-        
+    const geminiFetch = async (prompt: string, apiKey: string, model: string): Promise<string> => {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${apiKey}`;
+
         const response = await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -57,8 +57,12 @@ export function createAiService(fallbackApiKey?: string) {
 
         if (response.ok) {
             const data = await response.json();
-            if (!data.candidates || data.candidates.length === 0) return "UJ_TEMA"; 
-            return data.candidates[0].content.parts[0].text;
+            const parts = data.candidates?.[0]?.content?.parts;
+            // Biztonsági szűrő miatt üres válasz (pl. finishReason: SAFETY)
+            if (!parts || parts.length === 0) {
+                throw new Error(`A Gemini nem adott szöveges választ (${data.candidates?.[0]?.finishReason ?? 'ismeretlen ok'}).`);
+            }
+            return parts.map((p: { text?: string }) => p.text ?? '').join('');
         }
 
         if (response.status === 429) {
@@ -72,6 +76,10 @@ export function createAiService(fallbackApiKey?: string) {
 
     // --- 2. NATÍV ANTHROPIC (CLAUDE) HÍVÁS ---
     const claudeFetch = async (prompt: string, apiKey: string, model: string): Promise<string> => {
+        // Az 5-ös generációs modellek (pl. claude-haiku-5-5) nem fogadják el a temperature paramétert,
+        // a gondolkodás alapból be van kapcsolva – egyszerű JSON feladathoz alacsony effort elég.
+        const ujGeneracio = /^claude-(haiku|sonnet|opus|fable)-5/.test(model);
+
         const response = await fetch('https://api.anthropic.com/v1/messages', {
             method: 'POST',
             headers: {
@@ -81,15 +89,22 @@ export function createAiService(fallbackApiKey?: string) {
             },
             body: JSON.stringify({
                 model: model,
-                max_tokens: 1024,
-                temperature: 0.3,
+                max_tokens: 4096,
+                ...(ujGeneracio ? { output_config: { effort: 'low' } } : { temperature: 0.3 }),
                 messages: [{ role: 'user', content: prompt }]
             })
         });
 
         if (response.ok) {
             const data = await response.json();
-            return data.content[0].text;
+            if (data.stop_reason === 'refusal') {
+                throw new Error(`A Claude visszautasította a kérést (${data.stop_details?.category ?? 'ismeretlen kategória'}).`);
+            }
+            // A válasz gondolkodás (thinking) blokkokat is tartalmazhat – csak a szöveges blokkokat vesszük
+            return (data.content ?? [])
+                .filter((b: { type: string }) => b.type === 'text')
+                .map((b: { text: string }) => b.text)
+                .join('');
         }
 
         if (response.status === 429) {
@@ -101,9 +116,28 @@ export function createAiService(fallbackApiKey?: string) {
         throw new Error(`Claude REST hiba (${response.status}): ${err}`);
     };
 
+    // --- 3. KÖZÖS HÍVÓ: a beállított SZOLGÁLTATÓ dönt (nem a modell nevéből találgatunk) ---
+    // Visszatérés: a modell szöveges válasza, vagy "QUOTA_EXCEEDED"
+    const aiHivas = async (provider: string, modell: string, apiKey: string, prompt: string, jsonValasz: boolean): Promise<string> => {
+        if (provider === 'GOOGLE') return geminiFetch(prompt, apiKey, modell);
+        if (provider === 'ANTHROPIC') return claudeFetch(prompt, apiKey, modell);
+
+        // OpenAI és Groq (OpenAI-kompatibilis API)
+        const openai = new OpenAI({
+            apiKey,
+            ...(provider === 'GROQ' ? { baseURL: 'https://api.groq.com/openai/v1' } : {})
+        });
+        const response = await openai.chat.completions.create({
+            model: modell,
+            messages: [{ role: 'user', content: prompt }],
+            ...(jsonValasz ? { response_format: { type: 'json_object' as const } } : {})
+        });
+        return response.choices[0]?.message?.content ?? '';
+    };
+
     return {
         // --- A) HÍRELEMZŐ (HÍRÉRTÉK, CLICKBAIT ÉS KULCSSZAVAK) ---
-        hirElemzese: async (cim: string, szoveg: string, modell: string, apiKey: string) => {
+        hirElemzese: async (cim: string, szoveg: string, provider: string, modell: string, apiKey: string) => {
             const prompt = `
             Te egy profi magyar politikai, gazdasági elemző és főszerkesztő vagy.
             Feladatod az alábbi hír objektív elemzése. Öt dolgot kell visszadnod:
@@ -140,30 +174,8 @@ export function createAiService(fallbackApiKey?: string) {
             `;
 
             try {
-                let cleanText = "";
-
-                if (modell.includes('gemini')) {
-                    const text = await geminiFetch(prompt, apiKey);
-                    if (text === "QUOTA_EXCEEDED") return hibasEredmeny('QUOTA', "A Google API ingyenes kerete kimerült.");
-                    cleanText = text;
-                } else if (modell.includes('claude')) {
-                    const text = await claudeFetch(prompt, apiKey, modell);
-                    if (text === "QUOTA_EXCEEDED") return hibasEredmeny('QUOTA', "A Claude API kerete kimerült.");
-                    cleanText = text;
-                } else {
-                    const isGroq = modell.includes('llama');
-                    const clientConfig: any = { apiKey: apiKey };
-                    if (isGroq) clientConfig.baseURL = "https://api.groq.com/openai/v1";
-                    
-                    const openai = new OpenAI(clientConfig);
-                    const response = await openai.chat.completions.create({
-                        model: modell,
-                        messages: [{ role: "user", content: prompt }],
-                        response_format: { type: "json_object" }
-                    });
-                    
-                    cleanText = response.choices[0].message.content || "{}";
-                }
+                let cleanText = await aiHivas(provider, modell, apiKey, prompt, true);
+                if (cleanText === "QUOTA_EXCEEDED") return hibasEredmeny('QUOTA', `A(z) ${provider} API kerete kimerült.`);
 
                 cleanText = cleanText.replace(/```json/g, '').replace(/```/g, '').trim();
                 const parsedData = extractJsonFromText(cleanText);
@@ -184,7 +196,7 @@ export function createAiService(fallbackApiKey?: string) {
         },
 
         // --- B) KLASZTEREZŐ ---
-        hírKlaszterezes: async (ujHir: any, frissHirek: any[], apiKey: string, provider: string) => {
+        hírKlaszterezes: async (ujHir: any, frissHirek: any[], apiKey: string, provider: string, modell: string) => {
             const fallbackClusterId = `cluster_${Date.now()}_${Math.random().toString(36).substring(7)}`;
             if (frissHirek.length === 0) return fallbackClusterId;
 
@@ -207,26 +219,7 @@ export function createAiService(fallbackApiKey?: string) {
             `;
 
             try {
-                let valasz = "";
-
-                if (provider === 'GOOGLE') {
-                    valasz = await geminiFetch(prompt, apiKey);
-                } else if (provider === 'ANTHROPIC') {
-                    valasz = await claudeFetch(prompt, apiKey, 'claude-3-haiku-20240307');
-                } else {
-                    const isGroq = provider === 'GROQ';
-                    const clientConfig: any = { apiKey: apiKey };
-                    if (isGroq) clientConfig.baseURL = "https://api.groq.com/openai/v1";
-                    
-                    const openai = new OpenAI(clientConfig);
-                    const modell = isGroq ? "llama-3.1-8b-instant" : "gpt-4o-mini";
-
-                    const response = await openai.chat.completions.create({
-                        model: modell,
-                        messages: [{ role: "user", content: prompt }]
-                    });
-                    valasz = response.choices[0].message.content || "";
-                }
+                let valasz = await aiHivas(provider, modell, apiKey, prompt, false);
 
                 if (valasz === "QUOTA_EXCEEDED") return fallbackClusterId;
 

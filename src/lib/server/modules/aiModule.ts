@@ -2,6 +2,7 @@
 import type { Services } from '../index';
 import { decrypt } from '../crypto';
 import { KATEGORIA_SZOTAR, illeszkedoKategoria } from '$lib/kategoriak';
+import { modellValasztas } from '$lib/aiModellek';
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -60,13 +61,8 @@ export function createAiModule(services: Services) {
                 return { ...stat, kihagyva: true };
             }
 
-            // 4 AI szolgáltató kezelése (Alapértelmezett a GROQ)
-            const provider = user.ai_provider || 'GROQ';
-            let valasztottModell = 'llama-3.1-8b-instant'; // Alapértelmezett
-
-            if (provider === 'GOOGLE') valasztottModell = 'gemini-2.0-flash';
-            else if (provider === 'OPENAI') valasztottModell = 'gpt-4o-mini';
-            else if (provider === 'ANTHROPIC') valasztottModell = 'claude-3-haiku-20240307';
+            // 4 AI szolgáltató kezelése: a felhasználó egyedi modellje, vagy a szolgáltató alapértelmezettje
+            const { szolgaltato: provider, modell: valasztottModell } = modellValasztas(user.ai_provider, user.ai_modell);
 
             // --- 2. ÚJ HÍREK LEKÉRÉSE ---
             const hirek = await services.hirRepo.getFeldolgozatlanHirek(ELEMZESI_LIMIT, userId);
@@ -113,7 +109,7 @@ export function createAiModule(services: Services) {
                     const szoveg = hir.tartalom || hir.cim;
                     
                     // A) AI Elemzés és B) Klaszterezés (ITT ADTUK ÁT PLUSZBAN A hir.cim-et!)
-                    const aiEredmeny = await services.ai.hirElemzese(hir.cim, szoveg, valasztottModell, apiKey);
+                    const aiEredmeny = await services.ai.hirElemzese(hir.cim, szoveg, provider, valasztottModell, apiKey);
 
                     // Sikertelen elemzést NEM mentünk el, így a hír a következő futáskor újra sorra kerül
                     if (aiEredmeny.hiba === 'QUOTA') {
@@ -127,7 +123,7 @@ export function createAiModule(services: Services) {
                         throw new Error(aiEredmeny.hibaUzenet || 'Az AI szolgáltató nem adott értékelhető választ.');
                     }
 
-                    const clusterId = await services.ai.hírKlaszterezes(hir, frissKeszHirek, apiKey, provider);
+                    const clusterId = await services.ai.hírKlaszterezes(hir, frissKeszHirek, apiKey, provider, valasztottModell);
 
                     // C) Elemzés mentése és D) Klaszter összekötés (ITT ADJUK ÁT A CLICKBAIT ÉRTÉKET!)
                     await services.hirRepo.saveAiElemzes(
