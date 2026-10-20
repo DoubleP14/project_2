@@ -288,6 +288,7 @@ export const actions: Actions = {
         const forras_url = formData.get('forras_url')?.toString().trim();
         const rss_url = formData.get('rss_url')?.toString().trim() || null;
         const szuro_kifejezesek = formData.get('szuro_kifejezesek')?.toString().trim() || null;
+        const is_own_source = formData.get('is_own_source') === 'true';
 
         if (!forras_nev || !forras_url) return fail(400, { message: 'A név és az URL megadása kötelező!' });
 
@@ -297,7 +298,7 @@ export const actions: Actions = {
 
             await prisma.hirForrasok.update({
                 where: { id: id },
-                data: { forras_nev, forras_url, rss_url, szuro_kifejezesek }
+                data: { forras_nev, forras_url, rss_url, szuro_kifejezesek, is_own_source }
             });
 
             return { success: true, message: 'Forrás sikeresen frissítve!' };

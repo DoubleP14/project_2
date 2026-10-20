@@ -9,6 +9,9 @@
     export let data;
     export let form;
 
+    // A gap analízis (konkurenciafigyelés) magyarázata a "Saját forrás" kapcsolókhoz
+    const GAP_MAGYARAZAT = 'Ha megjelölöd a saját médiumodat, értesítünk, ha a konkurencia olyan hírt hoz le, amit ti még nem (Gap analízis), a Hírek oldalon pedig „Hiányzó hír” jelzést kapnak ezek a cikkek. Saját forrás nélkül ez a funkció ki van kapcsolva.';
+
     // A rendszer Telegram botjának felhasználóneve (a TELEGRAM_BOT_TOKEN ehhez a bothoz tartozik)
     const TELEGRAM_BOT = 'hirgyfigyelo_ai_bot';
 
@@ -387,6 +390,7 @@
                                 Ez az én SAJÁT forrásom (Ezzel akarom összehasonlítani a konkurenciát)
                             </Toggle>
                             <input type="hidden" name="is_own_source" value={isOwnSourceChecked} />
+                            <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">{GAP_MAGYARAZAT}</p>
                         </div>
                     </div>
                     <Button type="submit" color="green" class="w-full sm:w-auto px-6 font-bold">+ Hozzáadás a listához</Button>
@@ -586,6 +590,7 @@
                 Saját forrás? (Konkurencia figyeléséhez)
             </Toggle>
             <input type="hidden" name="is_own_source" value={editFormData.is_own_source} />
+            <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">{GAP_MAGYARAZAT}</p>
         </div>
         <div class="flex justify-end gap-3 mt-6">
             <Button type="button" color="alternative" on:click={removeEditModal}>Mégse</Button>
