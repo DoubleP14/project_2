@@ -20,7 +20,8 @@ A **News Trends** egy B2B SaaS webalkalmazás, amely cégvezetőknek és elemző
   - bombahír (legalább 3 forrás hozta le),
   - gap analízis (a konkurencia megírta, a saját médium nem).
 - **Statisztika:** hangulat- és hírérték-megoszlás, forrásonkénti állapot.
-- **Admin központ:** felhasználók kezelése, rendszernapló, hibás források, kézi frissítés és takarítás.
+- **Forrásfigyelés:** a felhasználó látja forrásai állapotát (működik / hiba / kikapcsolva); 24 egymás utáni hiba után a rendszer automatikusan kikapcsolja a forrást és e-mailben értesít.
+- **Admin központ:** felhasználók felfüggesztése, rendszernapló, figyelmet igénylő források (naplózott admin kikapcsolással), kézi frissítés és takarítás.
 - **Előfizetés:** Starter / Pro Analyst / Enterprise csomagok, Stripe fizetés, automatikus e-számla.
 - **GDPR:** adatkezelési tájékoztató (`/adatvedelem`), visszavonhatatlan fióktörlés minden kapcsolódó adattal együtt.
 

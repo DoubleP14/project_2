@@ -252,6 +252,11 @@ export const actions: Actions = {
             const forras = await prisma.hirForrasok.findUnique({ where: { id: id } });
             if (!forras || forras.felhasznalo_id !== user.id) return fail(403, { message: 'Nincs jogod.' });
 
+            // Adminisztrátor által kikapcsolt forrást a felhasználó nem kapcsolhat vissza
+            if (!forras.aktiv && forras.kikapcsolas_oka === 'ADMIN') {
+                return fail(403, { message: 'Ezt a forrást egy adminisztrátor kapcsolta ki. A visszakapcsoláshoz vedd fel velünk a kapcsolatot.' });
+            }
+
             // CSOMAGKORLÁT: aktiváláskor (inaktív -> aktív) ellenőrizzük a Starter limiteket
             if (!forras.aktiv && !fizetosCsomag(user)) {
                 if (forras.tipus === 'YOUTUBE') {
@@ -263,9 +268,12 @@ export const actions: Actions = {
                 }
             }
 
+            // Visszakapcsoláskor tiszta lappal indul (a korábbi hibák nem számítanak bele az automatikus leállításba)
             await prisma.hirForrasok.update({
                 where: { id: id },
-                data: { aktiv: !forras.aktiv }
+                data: forras.aktiv
+                    ? { aktiv: false, kikapcsolas_oka: null }
+                    : { aktiv: true, kikapcsolas_oka: null, hiba_szamlalo: 0, utolso_hiba: null }
             });
 
             const newStatus = !forras.aktiv ? 'aktívvá' : 'inaktívvá';
@@ -298,7 +306,8 @@ export const actions: Actions = {
 
             await prisma.hirForrasok.update({
                 where: { id: id },
-                data: { forras_nev, forras_url, rss_url, szuro_kifejezesek, is_own_source }
+                // Módosított beállítással a korábbi hibák elévülnek (a következő frissítés dönt)
+                data: { forras_nev, forras_url, rss_url, szuro_kifejezesek, is_own_source, hiba_szamlalo: 0, utolso_hiba: null }
             });
 
             return { success: true, message: 'Forrás sikeresen frissítve!' };

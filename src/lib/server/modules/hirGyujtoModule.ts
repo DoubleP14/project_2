@@ -2,7 +2,11 @@
 import Parser from 'rss-parser';
 import type { Services } from '../index'; 
 import { rawConfig } from '../index';
-import { decrypt } from '../crypto'; 
+import { decrypt } from '../crypto';
+import { emailService } from '../services/emailService';
+
+// Ennyi egymás utáni sikertelen frissítés után (óránkénti futásnál kb. 1 nap) a forrás automatikusan kikapcsol
+const AUTO_KIKAPCSOLASI_KUSZOB = 24;
 
 // Chrome böngészőnek hazudja a robotot, hogy ne tiltsa le a 403-as hibával
 const rssParser = new Parser({
@@ -180,14 +184,38 @@ export function createHirGyujtoModule(services: Services) {
                 } catch (error) {
                     console.error(`Hiba a(z) ${forras.forras_nev} frissítésekor:`, error instanceof Error ? error.message : error);
                     
-                    // HIBA TÖRTÉNT: Növeli a számlálót, hogy megjelenjen a Dashboardon
-                    await services.db.hirForrasok.update({
+                    const hibaUzenet = error instanceof Error ? error.message : 'Ismeretlen hiba';
+
+                    // HIBA TÖRTÉNT: Növeli a számlálót, hogy a felhasználó és az admin is lássa
+                    const frissitett = await services.db.hirForrasok.update({
                         where: { id: forras.id },
-                        data: { 
+                        data: {
                             hiba_szamlalo: { increment: 1 },
-                            utolso_hiba: error instanceof Error ? error.message : 'Ismeretlen hiba'
+                            utolso_hiba: hibaUzenet
                         }
                     });
+
+                    // AUTOMATIKUS LEÁLLÍTÁS (circuit breaker): tartósan hibás forrást nem próbálunk a végtelenségig
+                    if (frissitett.hiba_szamlalo >= AUTO_KIKAPCSOLASI_KUSZOB) {
+                        await services.db.hirForrasok.update({
+                            where: { id: forras.id },
+                            data: { aktiv: false, kikapcsolas_oka: 'AUTO' }
+                        });
+                        await services.db.rendszerNaplo.create({
+                            data: {
+                                esemeny_tipus: 'FORRAS_AUTO_KIKAPCSOLVA',
+                                leiras: `A(z) ${forras.forras_nev} forrás ${AUTO_KIKAPCSOLASI_KUSZOB} egymás utáni hiba után automatikusan kikapcsolva. Utolsó hiba: ${hibaUzenet.substring(0, 150)}`,
+                                felhasznalo_id: userId
+                            }
+                        });
+
+                        // A tulajdonos e-mailben értesül (ha a küldés nem sikerül, a leállítás akkor is érvényes)
+                        const tulajdonos = await services.db.felhasznalok.findUnique({ where: { id: userId }, select: { email: true } });
+                        if (tulajdonos) {
+                            await emailService.sendForrasKikapcsolvaEmail(tulajdonos.email, forras.forras_nev ?? forras.forras_url, hibaUzenet)
+                                .catch((e) => console.error('Nem sikerült elküldeni a forrás kikapcsolási értesítőt:', e));
+                        }
+                    }
 
                     // Naplózza a rendszer naplóba is
                     await services.db.rendszerNaplo.create({
