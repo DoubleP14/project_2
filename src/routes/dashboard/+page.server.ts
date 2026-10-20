@@ -80,9 +80,22 @@ export const load = async ({ locals, url }) => {
         where: { felhasznalo_id: userId, is_own_source: true }
     })) > 0;
 
+    // 7. Hibás vagy (rendszer/admin által) kikapcsolt források – a felhasználó lássa, ha valami nem frissül
+    const problemasForrasok = await prisma.hirForrasok.findMany({
+        where: {
+            felhasznalo_id: userId,
+            OR: [
+                { aktiv: true, hiba_szamlalo: { gt: 0 } },
+                { kikapcsolas_oka: { not: null } }
+            ]
+        },
+        select: { forras_nev: true, forras_url: true, kikapcsolas_oka: true }
+    });
+
     return {
         vanApiKulcs: !!kulcsok?.api_key,
         vanSajatForras,
+        problemasForrasok,
         cikkek: elemzesek,
         aktivKategoria: aktivKategoria,
         keresoKifejezes: keresoKifejezes,

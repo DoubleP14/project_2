@@ -68,6 +68,26 @@
         </div>
     {/if}
 
+    <!-- HIBÁS / KIKAPCSOLT FORRÁSOK FIGYELMEZTETÉS -->
+    {#if data.problemasForrasok.length > 0}
+        <div class="mb-8 p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-red-50 dark:bg-red-900/20 border border-red-300 dark:border-red-800 rounded-xl">
+            <div>
+                <h3 class="font-bold text-red-800 dark:text-red-300">
+                    {data.problemasForrasok.length} hírforrásod nem frissül
+                </h3>
+                <p class="text-sm text-red-700 dark:text-red-200 mt-1">
+                    {data.problemasForrasok.map((f: { forras_nev: string | null; forras_url: string }) => f.forras_nev || f.forras_url).join(', ')}
+                    {#if data.problemasForrasok.some((f: { kikapcsolas_oka: string | null }) => f.kikapcsolas_oka === 'AUTO')}
+                        – a tartósan hibás forrásokat a rendszer kikapcsolta.
+                    {/if}
+                </p>
+            </div>
+            <Button href="/settings?tab=forrasok" color="red" class="shrink-0 font-semibold">
+                <CogSolid class="w-4 h-4 me-2" /> Források megnyitása
+            </Button>
+        </div>
+    {/if}
+
     <!-- SZŰRŐ MODUL -->
     <div class="mb-10 p-6 bg-gray-50 dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
         

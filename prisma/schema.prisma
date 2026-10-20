@@ -85,6 +85,8 @@ model HirForrasok {
   utolso_frissites DateTime?
   hiba_szamlalo    Int       @default(0)
   utolso_hiba      String?   @db.Text
+  // Ki kapcsolta ki a forrást: null = a felhasználó (vagy aktív), "AUTO" = tartós hiba miatt a rendszer, "ADMIN" = adminisztrátor
+  kikapcsolas_oka  String?
 
   szuro_kifejezesek String?
 

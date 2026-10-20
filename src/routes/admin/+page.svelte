@@ -195,7 +195,14 @@
                             <TableBodyCell>
                                 <form method="POST" action="?/toggleUserStatus" use:enhance class="flex items-center gap-2">
                                     <input type="hidden" name="userId" value={user.id} />
-                                    <Toggle color="green" checked={user.aktiv} on:change={(e) => (e.target as HTMLElement)?.closest('form')?.requestSubmit()} />
+                                    <Toggle color="green" checked={user.aktiv} on:change={(e) => {
+                                        const kapcsolo = e.target as HTMLInputElement;
+                                        const kerdes = user.aktiv
+                                            ? `Biztosan felfüggeszted ${user.username} fiókját? Nem tud majd belépni, és a hírei sem frissülnek.`
+                                            : `Visszaállítod ${user.username} fiókját?`;
+                                        if (confirm(kerdes)) kapcsolo.closest('form')?.requestSubmit();
+                                        else kapcsolo.checked = user.aktiv;
+                                    }} />
                                     <span class="text-xs font-medium {user.aktiv ? 'text-green-600' : 'text-red-500'}">
                                         {user.aktiv ? 'Aktív' : 'Felfüggesztve'}
                                     </span>
@@ -218,7 +225,7 @@
         <div transition:fade class="mb-8 mt-4">
             <h2 class="text-xl font-bold text-red-600 dark:text-red-500 flex items-center gap-2 mb-4">
                 <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>
-                Rendszerriasztás: Hibás Hírforrások ({data.hibasForrasok.length})
+                Figyelmet igénylő hírforrások ({data.hibasForrasok.length})
             </h2>
             
             <Card size="xl" class="w-full max-w-none border-red-200 dark:border-red-900 shadow-md">
@@ -227,8 +234,9 @@
                         <TableHead class="bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400">
                             <TableHeadCell>Forrás Neve / URL</TableHeadCell>
                             <TableHeadCell>Felhasználó</TableHeadCell>
-                            <TableHeadCell>Hibák Száma</TableHeadCell>
+                            <TableHeadCell>Állapot</TableHeadCell>
                             <TableHeadCell>Utolsó Hibaüzenet</TableHeadCell>
+                            <TableHeadCell>Művelet</TableHeadCell>
                         </TableHead>
                         <TableBody>
                             {#each data.hibasForrasok as forras}
@@ -247,10 +255,24 @@
                                         {/if}
                                     </TableBodyCell>
                                     <TableBodyCell>
-                                        <Badge color="red" class="animate-pulse">{forras.hiba_szamlalo} Hiba</Badge>
+                                        {#if forras.kikapcsolas_oka === 'ADMIN'}
+                                            <Badge color="dark">Admin kikapcsolta</Badge>
+                                        {:else if forras.kikapcsolas_oka === 'AUTO'}
+                                            <Badge color="yellow">Automatikusan kikapcsolva</Badge>
+                                        {:else}
+                                            <Badge color="red">{forras.hiba_szamlalo} egymás utáni hiba</Badge>
+                                        {/if}
                                     </TableBodyCell>
                                     <TableBodyCell class="text-xs text-gray-500 max-w-xs truncate" title={forras.utolso_hiba}>
-                                        {forras.utolso_hiba || 'Ismeretlen hiba történt a letöltéskor.'}
+                                        {forras.utolso_hiba || (forras.kikapcsolas_oka === 'ADMIN' ? '—' : 'Ismeretlen hiba történt a letöltéskor.')}
+                                    </TableBodyCell>
+                                    <TableBodyCell>
+                                        <form method="POST" action="?/toggleSourceAdmin" use:enhance on:submit={(e) => { if (!confirm(forras.kikapcsolas_oka === 'ADMIN' ? 'Visszakapcsolod ezt a forrást?' : 'Kikapcsolod ezt a forrást? A tulajdonos látni fogja, hogy adminisztrátor kapcsolta ki, és ő maga nem tudja visszakapcsolni.')) e.preventDefault(); }}>
+                                            <input type="hidden" name="id" value={forras.id} />
+                                            <Button type="submit" size="xs" color={forras.kikapcsolas_oka === 'ADMIN' ? 'green' : 'red'} outline>
+                                                {forras.kikapcsolas_oka === 'ADMIN' ? 'Visszakapcsolás' : 'Kikapcsolás'}
+                                            </Button>
+                                        </form>
                                     </TableBodyCell>
                                 </TableBodyRow>
                             {/each}
@@ -277,7 +299,7 @@
                         <div class="shrink-0 w-28">
                             {#if naplo.esemeny_tipus.includes('HIBA') || naplo.esemeny_tipus.includes('ERROR')}
                                 <Badge color="red" class="font-bold">{naplo.esemeny_tipus}</Badge>
-                            {:else if naplo.esemeny_tipus.includes('WARNING') || naplo.esemeny_tipus.includes('ABORT') || naplo.esemeny_tipus.includes('QUOTA')}
+                            {:else if ['WARNING', 'ABORT', 'QUOTA', 'KIKAPCSOL', 'SUSPEND'].some((t) => naplo.esemeny_tipus.includes(t))}
                                 <Badge color="yellow" class="font-bold">{naplo.esemeny_tipus}</Badge>
                             {:else if naplo.esemeny_tipus.includes('CRON') || naplo.esemeny_tipus.includes('SYSTEM')}
                                 <Badge color="indigo" class="font-bold">{naplo.esemeny_tipus}</Badge>

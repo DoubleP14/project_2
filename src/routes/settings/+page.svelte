@@ -17,6 +17,7 @@
 
     // --- URL PARAMÉTER FIGYELŐ ---
     $: isElofizetesTab = $page.url.searchParams.get('tab') === 'elofizetes';
+    $: isForrasokTab = $page.url.searchParams.get('tab') === 'forrasok';
 
     let aiProviders = [
         { value: 'GROQ', name: 'Groq' },
@@ -123,7 +124,7 @@
 
     <Tabs style="underline" class="mb-6">
         
-        <TabItem open={!isElofizetesTab}>
+        <TabItem open={!isElofizetesTab && !isForrasokTab}>
             <div slot="title" class="flex items-center gap-2"><UserCircleSolid size="sm"/> AI & Riasztások</div>
             <Card size="xl" class="shadow-lg dark:bg-gray-800 w-full max-w-none mt-4">
                 
@@ -304,7 +305,7 @@
             </Card>
         </TabItem>
 
-        <TabItem>
+        <TabItem open={isForrasokTab}>
             <div slot="title" class="flex items-center gap-2"><AdjustmentsVerticalSolid size="sm"/> Hírforrások ({data.forrasok?.length || 0})</div>
             <div class="mt-4 space-y-6">
                 <h3 class="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
@@ -322,16 +323,40 @@
                                             {#if forras.tipus === 'YOUTUBE'}<Badge color="red" size="sm">YouTube</Badge>
                                             {:else}<Badge color="dark" size="sm">RSS</Badge>{/if}
                                             {#if forras.is_own_source}<Badge color="green" size="sm">Saját</Badge>{/if}
-                                            {#if !forras.aktiv}<Badge color="purple" size="sm">Inaktív</Badge>{/if}
+                                            <!-- FORRÁS ÁLLAPOTA -->
+                                            {#if forras.kikapcsolas_oka === 'ADMIN'}
+                                                <Badge color="red" size="sm">Adminisztrátor kikapcsolta</Badge>
+                                            {:else if forras.kikapcsolas_oka === 'AUTO'}
+                                                <Badge color="yellow" size="sm">Tartós hiba miatt kikapcsolva</Badge>
+                                            {:else if !forras.aktiv}
+                                                <Badge color="purple" size="sm">Inaktív</Badge>
+                                            {:else if forras.hiba_szamlalo > 0}
+                                                <Badge color="red" size="sm">Hiba ({forras.hiba_szamlalo}×)</Badge>
+                                            {:else if forras.utolso_frissites}
+                                                <Badge color="green" size="sm">Működik</Badge>
+                                            {:else}
+                                                <Badge color="dark" size="sm">Első frissítésre vár</Badge>
+                                            {/if}
                                         </div>
                                         <a href={forras.forras_url} target="_blank" class="text-sm text-blue-600 dark:text-blue-400 hover:underline truncate block w-fit">
                                             {forras.forras_url}
                                         </a>
+                                        {#if forras.utolso_frissites}
+                                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Utolsó sikeres frissítés: {formatDate('%Y. $m. %d. %H:%I', forras.utolso_frissites)}</p>
+                                        {/if}
+                                        {#if forras.utolso_hiba && (forras.hiba_szamlalo > 0 || forras.kikapcsolas_oka)}
+                                            <p class="mt-1 text-xs text-red-600 dark:text-red-400 break-words">Hiba: {forras.utolso_hiba}</p>
+                                        {/if}
+                                        {#if forras.kikapcsolas_oka === 'AUTO'}
+                                            <p class="mt-1 text-xs text-amber-600 dark:text-amber-400">Javítsd ki a forrás címét a ceruza ikonnal, majd kapcsold vissza.</p>
+                                        {:else if forras.kikapcsolas_oka === 'ADMIN'}
+                                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">A visszakapcsoláshoz vedd fel velünk a kapcsolatot.</p>
+                                        {/if}
                                     </div>
                                     <div class="flex items-center gap-3 ml-4 border-l border-gray-200 dark:border-gray-700 pl-4 py-1">
-                                        <form method="POST" action="?/toggleSource" use:enhance class="flex items-center" title="Ki/Be kapcsolás">
+                                        <form method="POST" action="?/toggleSource" use:enhance class="flex items-center" title={forras.kikapcsolas_oka === 'ADMIN' ? 'Adminisztrátor kapcsolta ki' : 'Ki/Be kapcsolás'}>
                                             <input type="hidden" name="id" value={forras.id} />
-                                            <Toggle color="green" size="small" checked={forras.aktiv} on:change={(e) => (e.target as HTMLElement)?.closest('form')?.requestSubmit()} class="cursor-pointer" />
+                                            <Toggle color="green" size="small" checked={forras.aktiv} disabled={forras.kikapcsolas_oka === 'ADMIN'} on:change={(e) => (e.target as HTMLElement)?.closest('form')?.requestSubmit()} class="cursor-pointer" />
                                         </form>
                                         <Button type="button" size="xs" color="light" class="p-2 border-gray-300 dark:border-gray-600 hover:text-blue-600" on:click={() => openEditModal(forras)}>
                                             <EditOutline class="w-4 h-4" />

@@ -32,9 +32,9 @@ export async function load({ locals }) {
         aiElemzesek: await services.db.aiElemzesek.count(),
     };
 
-    // A hibás hírforrások lekérése (Ahol a hiba_szamlalo nagyobb mint 0)
+    // Figyelmet igénylő források: hibásak, vagy a rendszer/admin által kikapcsoltak
     const hibasForrasok = await services.db.hirForrasok.findMany({
-        where: { hiba_szamlalo: { gt: 0 } },
+        where: { OR: [{ hiba_szamlalo: { gt: 0 } }, { kikapcsolas_oka: { not: null } }] },
         orderBy: { hiba_szamlalo: 'desc' },
         include: { felhasznalo: { select: { username: true, email: true } } }
     });
@@ -87,7 +87,42 @@ export const actions = {
             data: { aktiv: !currentUser.aktiv }
         });
 
-        return { success: true };
+        // Felfüggesztés / visszaállítás naplózása (ki, kit) – az érintett felhasználóhoz kötve
+        await logger.info(
+            currentUser.aktiv ? 'ADMIN_USER_SUSPEND' : 'ADMIN_USER_REACTIVATE',
+            `Fiók ${currentUser.aktiv ? 'felfüggesztve' : 'visszaállítva'} adminisztrátor által (admin: #${locals.user.id})`,
+            userId
+        );
+
+        return { success: true, message: currentUser.aktiv ? 'Felhasználó felfüggesztve.' : 'Felhasználó visszaállítva.' };
+    },
+
+    // --- HÍRFORRÁS KI/BEKAPCSOLÁSA ADMINISZTRÁTORKÉNT (szerkesztés és törlés nélkül, naplózva) ---
+    toggleSourceAdmin: async ({ request, locals }) => {
+        if (!locals.user || locals.user.role !== 'admin') {
+            return fail(403, { message: 'Nincs jogosultságod ehhez a művelethez!' });
+        }
+
+        const id = Number((await request.formData()).get('id'));
+        const forras = await services.db.hirForrasok.findUnique({ where: { id } });
+        if (!forras) return fail(404, { message: 'A forrás nem található.' });
+
+        // Ha aktív (vagy más okból inaktív) -> admin kikapcsolás; ha admin kapcsolta ki -> visszakapcsolás tiszta lappal
+        const visszakapcsolas = forras.kikapcsolas_oka === 'ADMIN';
+        await services.db.hirForrasok.update({
+            where: { id },
+            data: visszakapcsolas
+                ? { aktiv: true, kikapcsolas_oka: null, hiba_szamlalo: 0, utolso_hiba: null }
+                : { aktiv: false, kikapcsolas_oka: 'ADMIN' }
+        });
+
+        await logger.info(
+            visszakapcsolas ? 'ADMIN_FORRAS_BEKAPCSOLAS' : 'ADMIN_FORRAS_KIKAPCSOLAS',
+            `A(z) ${forras.forras_nev ?? forras.forras_url} forrás ${visszakapcsolas ? 'visszakapcsolva' : 'kikapcsolva'} adminisztrátor által (admin: #${locals.user.id})`,
+            forras.felhasznalo_id
+        );
+
+        return { success: true, message: visszakapcsolas ? 'Forrás visszakapcsolva.' : 'Forrás kikapcsolva. A tulajdonos a forráslistájában látja, hogy adminisztrátor kapcsolta ki.' };
     },
 
     // --- KÉZI TELJES FRISSÍTÉS (minden aktív felhasználó hírei + AI elemzés) ---

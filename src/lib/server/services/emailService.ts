@@ -1,5 +1,10 @@
 // src/lib/server/services/emailService.ts
 import { levelKuldese } from './mailer';
+import { env } from '$env/dynamic/private';
+
+// Felhasználói / külső szöveg biztonságos beillesztése a HTML levélbe
+const escapeHtml = (szoveg: string) =>
+    szoveg.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 // Közös, egygombos e-mail sablon (regisztráció megerősítés, jelszó visszaállítás)
 const gombosEmailSablon = (cim: string, bevezeto: string, gombSzoveg: string, url: string, megjegyzes: string) => `
@@ -52,6 +57,23 @@ export const emailService = {
                 'Új jelszó beállítása',
                 resetUrl,
                 `A link ${ervenyessegPerc} percig érvényes, és csak egyszer használható fel. Ha nem te kérted, hagyd figyelmen kívül ezt a levelet – a jelszavad nem változik.`
+            )
+        });
+    },
+
+    // Tartósan hibás hírforrás automatikus kikapcsolásáról
+    sendForrasKikapcsolvaEmail: async (email: string, forrasNev: string, hibaUzenet: string) => {
+        const forrasokUrl = `${env.ORIGIN || 'http://localhost:5173'}/settings?tab=forrasok`;
+
+        await levelKuldese({
+            to: email,
+            subject: `⚠️ Egy hírforrásod kikapcsolt: ${forrasNev} - News Trends`,
+            html: gombosEmailSablon(
+                'Egy hírforrásod automatikusan kikapcsolt',
+                `A(z) <b>${escapeHtml(forrasNev)}</b> hírforrás hosszabb ideje (kb. 1 napja) nem frissíthető, ezért a rendszer kikapcsolta. Utolsó hibaüzenet: <i>${escapeHtml(hibaUzenet.substring(0, 200))}</i>`,
+                'Hírforrások megnyitása',
+                forrasokUrl,
+                'Ellenőrizd a forrás címét (pl. változott-e az RSS link), javítsd ki, majd kapcsold vissza a forráslistában.'
             )
         });
     }
