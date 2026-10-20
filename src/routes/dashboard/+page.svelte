@@ -126,7 +126,7 @@
         
         {#each megjelenitettCikkek as elemzes}
             
-            {@const isHianyozo = elemzes.hir.cluster_id && !sajatKlaszterek.has(elemzes.hir.cluster_id)}
+            {@const isHianyozo = data.vanSajatForras && elemzes.hir.cluster_id && !sajatKlaszterek.has(elemzes.hir.cluster_id)}
 
             <div class="relative transition-transform duration-300 {isHianyozo ? 'scale-[1.01] z-10' : ''}">
                 
