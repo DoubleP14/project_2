@@ -277,6 +277,8 @@
                         <div class="shrink-0 w-28">
                             {#if naplo.esemeny_tipus.includes('HIBA') || naplo.esemeny_tipus.includes('ERROR')}
                                 <Badge color="red" class="font-bold">{naplo.esemeny_tipus}</Badge>
+                            {:else if naplo.esemeny_tipus.includes('WARNING') || naplo.esemeny_tipus.includes('ABORT') || naplo.esemeny_tipus.includes('QUOTA')}
+                                <Badge color="yellow" class="font-bold">{naplo.esemeny_tipus}</Badge>
                             {:else if naplo.esemeny_tipus.includes('CRON') || naplo.esemeny_tipus.includes('SYSTEM')}
                                 <Badge color="indigo" class="font-bold">{naplo.esemeny_tipus}</Badge>
                             {:else}
