@@ -1,5 +1,8 @@
 <script lang="ts">
     import { Card, Button, Label, Input, Alert, Helper } from 'flowbite-svelte';
+    import GoogleGomb from '$lib/components/GoogleGomb.svelte';
+
+    export let data;
 
     const MIN_JELSZO_HOSSZ = 8;
 
@@ -72,6 +75,12 @@
         {/if}
 
         <form class="space-y-5" on:submit|preventDefault={handleRegister}>
+            {#if data.googleBeallitva}
+                <GoogleGomb szoveg="Regisztráció Google-fiókkal" />
+            <div class="flex items-center gap-3 text-xs uppercase text-gray-400">
+                <span class="h-px flex-1 bg-gray-200 dark:bg-gray-700"></span>vagy e-mail címmel<span class="h-px flex-1 bg-gray-200 dark:bg-gray-700"></span>
+            </div>
+            {/if}
             <div>
                 <Label for="username" class="mb-2">Felhasználónév</Label>
                 <Input type="text" name="username" id="username" placeholder="pl. KovacsAnna" autocomplete="username" bind:value={username} required />

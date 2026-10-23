@@ -1,6 +1,7 @@
 // src/routes/register/+page.server.ts
 import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
+import { googleBeallitva } from '$lib/server/googleAuth';
 
 export const load: PageServerLoad = async ({ locals }) => {
     // Nem engedi regisztrálni azt, aki már be van lépve
@@ -8,5 +9,5 @@ export const load: PageServerLoad = async ({ locals }) => {
         throw redirect(302, '/dashboard'); 
     }
     
-    return {};
+    return { googleBeallitva: googleBeallitva() };
 };

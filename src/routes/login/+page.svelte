@@ -1,6 +1,9 @@
 <script lang="ts">
     import { Card, Button, Label, Input, Alert } from 'flowbite-svelte';
     import { page } from '$app/stores';
+    import GoogleGomb from '$lib/components/GoogleGomb.svelte';
+
+    export let data;
 
     let email = '';
     let password = '';
@@ -14,6 +17,16 @@
     const ervenytelenLink = $page.url.searchParams.get('error') === 'invalid_token';
     const jelszoVisszaallitva = $page.url.searchParams.get('reset') === 'true';
     const mindenholKijelentkezve = $page.url.searchParams.get('logout_all') === 'true';
+
+    // Google bejelentkezés visszatérési hibái
+    const googleHibak: Record<string, string> = {
+        google: 'A Google-bejelentkezés nem sikerült. Kérlek, próbáld újra.',
+        google_megszakitva: 'A Google-bejelentkezést megszakítottad.',
+        google_email: 'A Google-fiókod e-mail címe nincs megerősítve, így nem használható belépésre.',
+        google_nincs_beallitva: 'A Google-bejelentkezés jelenleg nem érhető el.',
+        letiltva: 'A fiókodat egy adminisztrátor letiltotta.'
+    };
+    const googleHiba = googleHibak[$page.url.searchParams.get('error') ?? ''];
 
     // Megerősítő e-mail újraküldése (ha a fiók még nincs aktiválva)
     let nincsMegerositve = false;
@@ -86,6 +99,9 @@
         {#if megerositve}
             <Alert color="green" class="mb-4">Az e-mail címed sikeresen megerősítve! Most már bejelentkezhetsz.</Alert>
         {/if}
+        {#if googleHiba}
+            <Alert color="red" class="mb-4">{googleHiba}</Alert>
+        {/if}
         {#if ervenytelenLink}
             <Alert color="red" class="mb-4">A megerősítő link érvénytelen vagy már felhasználták.</Alert>
         {/if}
@@ -115,6 +131,12 @@
         {/if}
 
         <form class="space-y-5" on:submit|preventDefault={handleLogin}>
+            {#if data.googleBeallitva}
+                <GoogleGomb />
+            <div class="flex items-center gap-3 text-xs uppercase text-gray-400">
+                <span class="h-px flex-1 bg-gray-200 dark:bg-gray-700"></span>vagy e-mail címmel<span class="h-px flex-1 bg-gray-200 dark:bg-gray-700"></span>
+            </div>
+            {/if}
             <div>
                 <Label for="email" class="mb-2">E-mail cím</Label>
                 <Input type="email" name="email" id="email" placeholder="nev@ceg.hu" autocomplete="email" bind:value={email} required />

@@ -204,6 +204,23 @@ rm dump.sql
 docker compose up -d --build
 ```
 
+## 10. (Opcionális) Bejelentkezés Google-fiókkal
+
+1. [Google Cloud Console](https://console.cloud.google.com/) → új projekt (pl. `News Trends`).
+2. **APIs & Services → OAuth consent screen** (Google Auth Platform):
+   - User type: **External**, alkalmazásnév: `News Trends`, támogatási e-mail: a saját címed
+   - Authorized domain: `newstrends.hu`, adatvédelmi irányelvek: `https://newstrends.hu/adatvedelem`
+   - Scopes: `openid`, `email`, `profile` (alap, nem érzékeny jogosultságok – nem kell hozzájuk Google-ellenőrzés)
+   - **Publish app** („In production”), különben csak a felvett tesztfelhasználók tudnak belépni
+3. **Credentials → Create credentials → OAuth client ID** → Application type: **Web application**
+   - Authorized redirect URIs: `https://newstrends.hu/auth/google/callback` (helyi fejlesztéshez: `http://localhost:5173/auth/google/callback`)
+4. A kapott **Client ID** és **Client secret** értékét írd a szerveren a `.env`-be (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`), majd:
+   ```sh
+   docker compose up -d
+   ```
+
+Ha a két változó üres, a „Folytatás Google-fiókkal” gomb nem jelenik meg. Azonos e-mail címmel korábban regisztrált fiókhoz a rendszer automatikusan hozzákapcsolja a Google-fiókot (a Google igazolja az e-mail cím birtoklását).
+
 ## Üzemeltetés
 
 **Frissítés új verzióra** (miután pusholtál a GitHubra):
