@@ -21,8 +21,13 @@ export async function load({ locals }) {
     });
 
     const tisztaFelhasznalok = felhasznalok.map((f: typeof felhasznalok[number]) => {
-        const { password_hash, api_key, youtube_api_key, ...biztonsagosAdatok } = f;
-        return biztonsagosAdatok;
+        // Titkok, tokenek és titkosított adatok nem kerülnek a böngészőbe (az adminéba sem)
+        const {
+            password_hash, api_key, youtube_api_key, discord_webhook, telegram_chat_id,
+            verification_token, jelszo_reset_token, jelszo_reset_lejarat, google_id, token_verzio,
+            ...biztonsagosAdatok
+        } = f;
+        return { ...biztonsagosAdatok, googleOsszekapcsolva: !!google_id };
     });
 
     // --- 3. Globális Rendszer Statisztikák ---

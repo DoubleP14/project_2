@@ -540,6 +540,52 @@
                 </div>
             {/if}
 
+            <!-- BEJELENTKEZÉSI MÓDOK -->
+            <div class="mt-12 border-t border-gray-200 dark:border-gray-700 pt-8">
+                <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                    <LockSolid class="w-5 h-5 text-gray-500" /> Bejelentkezési módok
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5 flex items-center justify-between gap-4 shadow-sm">
+                        <div>
+                            <h4 class="font-bold text-gray-900 dark:text-white">Google-fiók</h4>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                {data.bejelentkezes.vanGoogle
+                                    ? 'Összekapcsolva – beléphetsz a „Folytatás Google-fiókkal” gombbal.'
+                                    : 'Nincs összekapcsolva. A belépési oldalon a Google-gombbal (ugyanezzel az e-mail címmel) összekapcsolhatod.'}
+                            </p>
+                        </div>
+                        {#if data.bejelentkezes.vanGoogle}
+                            <Badge color="green" class="shrink-0">Összekapcsolva</Badge>
+                        {:else}
+                            <Badge color="dark" class="shrink-0">Nincs</Badge>
+                        {/if}
+                    </div>
+
+                    <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+                        <div>
+                            <h4 class="font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                Jelszó
+                                {#if data.bejelentkezes.vanJelszo}<Badge color="green">Beállítva</Badge>{:else}<Badge color="dark">Nincs</Badge>{/if}
+                            </h4>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                {data.bejelentkezes.vanJelszo
+                                    ? 'E-mail címmel és jelszóval is beléphetsz.'
+                                    : 'Google-lel regisztráltál, ezért még nincs jelszavad. Ha e-mail címmel is be szeretnél lépni, állíts be egyet.'}
+                            </p>
+                        </div>
+                        <form method="POST" action="?/jelszoLinkKerese" use:enhance class="shrink-0">
+                            <Button type="submit" size="sm" color={data.bejelentkezes.vanJelszo ? 'alternative' : 'blue'} class="font-semibold whitespace-nowrap">
+                                {data.bejelentkezes.vanJelszo ? 'Jelszó módosítása' : 'Jelszó beállítása'}
+                            </Button>
+                        </form>
+                    </div>
+                </div>
+                <p class="mt-3 text-xs text-gray-500 dark:text-gray-400">
+                    Biztonsági okból a jelszót e-mailben küldött, 60 percig érvényes linken keresztül állíthatod be. Jelszóváltás után minden eszközön kijelentkeztetünk.
+                </p>
+            </div>
+
             <div class="mt-12 border-t border-red-900/30 pt-8 mb-8">
                 <h3 class="text-xl font-bold text-red-500 mb-4">Fiók Kezelése (Veszélyes Zóna)</h3>
                 <div class="mb-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 flex flex-col md:flex-row justify-between items-center gap-4 shadow-sm">

@@ -6,6 +6,7 @@ import { encrypt } from '$lib/server/crypto';
 import { logger } from '$lib/server/services/loggerService';
 import { KATEGORIA_SZOTAR } from '$lib/kategoriak';
 import { AI_SZOLGALTATOK, ervenyesModellNev } from '$lib/aiModellek';
+import { jelszoResetLinkKuldese } from '$lib/server/jelszoReset';
 
 // --- CSOMAGKORLÁTOK (Starter / ingyenes csomag) ---
 const STARTER_MAX_AKTIV_FORRAS = 3;
@@ -51,9 +52,17 @@ export const load: PageServerLoad = async ({ locals }) => {
     let displayDiscord = felhasznalo?.discord_webhook ? '•••••••••••••••••••••••••••• (Titkosítva mentve)' : '';
     let displayTelegram = felhasznalo?.telegram_chat_id ? '•••••••••••••••••••••••••••• (Titkosítva mentve)' : '';
 
-    return { 
+    // BIZTONSÁG: a jelszó-hash, a tokenek és a belső azonosítók SOHA nem kerülnek a böngészőbe
+    const {
+        password_hash, verification_token, jelszo_reset_token, jelszo_reset_lejarat,
+        google_id, token_verzio, ...biztonsagosAdatok
+    } = felhasznalo ?? ({} as NonNullable<typeof felhasznalo>);
+
+    return {
+        // Bejelentkezési módok (a Beállítások "Bejelentkezési módok" blokkjához)
+        bejelentkezes: { vanJelszo: !!password_hash, vanGoogle: !!google_id },
         felhasznalo: {
-            ...felhasznalo,
+            ...biztonsagosAdatok,
             api_key: displayApiKey,
             youtube_api_key: displayYoutubeKey,
             discord_webhook: displayDiscord,
@@ -384,6 +393,29 @@ export const actions: Actions = {
         }
 
         throw redirect(303, '/settings?downgraded=true');
+    },
+
+    // --- JELSZÓ BEÁLLÍTÁSA / MÓDOSÍTÁSA E-MAILBEN KÜLDÖTT LINKKEL ---
+    // (Google-lel regisztrált, jelszó nélküli fióknak is: a link igazolja, hogy a fiók tulajdonosa kéri)
+    jelszoLinkKerese: async ({ locals, url }) => {
+        if (!locals.user) throw redirect(303, '/login');
+
+        const user = await services.db.felhasznalok.findUnique({
+            where: { id: locals.user.id },
+            select: { id: true, email: true, jelszo_reset_lejarat: true }
+        });
+        if (!user) throw redirect(303, '/login');
+
+        try {
+            const eredmeny = await jelszoResetLinkKuldese(user, url.origin);
+            if (eredmeny === 'NEMREG_KULDVE') {
+                return fail(429, { message: 'Nemrég már küldtünk linket. Nézd meg a postafiókodat, vagy próbáld újra 2 perc múlva.' });
+            }
+            return { success: true, message: `Elküldtük a jelszóbeállító linket a(z) ${user.email} címre. A link 60 percig érvényes.` };
+        } catch (error) {
+            console.error('Nem sikerült elküldeni a jelszóbeállító e-mailt:', error);
+            return fail(500, { message: 'Nem sikerült elküldeni az e-mailt. Kérlek, próbáld újra később.' });
+        }
     },
 
     // --- KIJELENTKEZÉS MINDEN ESZKÖZRŐL ---

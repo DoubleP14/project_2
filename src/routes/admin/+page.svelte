@@ -165,6 +165,7 @@
                                         <div class="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
                                             {user.username}
                                             {#if user.role === 'admin'}<Badge color="purple" size="xs">Admin</Badge>{/if}
+                                            {#if user.googleOsszekapcsolva}<Badge color="blue" size="xs">Google</Badge>{/if}
                                         </div>
                                         <p class="text-sm text-gray-500">{user.email}</p>
                                     </div>
