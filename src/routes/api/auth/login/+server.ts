@@ -1,8 +1,7 @@
 import { json } from '@sveltejs/kit';
 import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
 import { services } from '$lib/server';
-import { env } from '$env/dynamic/private';
+import { munkamenetInditasa } from '$lib/server/session';
 import { logger } from '$lib/server/services/loggerService'; 
 
 export const POST = async ({ request, cookies }) => {
@@ -20,15 +19,16 @@ export const POST = async ({ request, cookies }) => {
             where: { email: email }
         });
 
+        // Google-lal regisztrált fióknak nincs jelszava – az üzenet erre is utal, de nem árulja el, létezik-e a fiók
         if (!user || !user.password_hash) {
-            return json({ error: 'Hibás email cím vagy jelszó!' }, { status: 401 });
+            return json({ error: 'Hibás email cím vagy jelszó! Ha Google-fiókkal regisztráltál, használd a „Folytatás Google-fiókkal” gombot.' }, { status: 401 });
         }
 
         // 2. Összehasonlítja a beírt jelszót az adatbázisban lévő hash-sel
         const jelszoHelyes = await bcrypt.compare(password, user.password_hash);
 
         if (!jelszoHelyes) {
-            return json({ error: 'Hibás email cím vagy jelszó!' }, { status: 401 });
+            return json({ error: 'Hibás email cím vagy jelszó! Ha Google-fiókkal regisztráltál, használd a „Folytatás Google-fiókkal” gombot.' }, { status: 401 });
         }
 
         // ─── E-MAIL MEGERŐSÍTÉS ELLENŐRZÉSE ───
@@ -45,22 +45,8 @@ export const POST = async ({ request, cookies }) => {
             return json({ error: 'A fiókodat egy adminisztrátor letiltotta.' }, { status: 403 });
         }
 
-        // 3. JWT Token gyártás
-        const token = jwt.sign(
-            // tv = token verzió: ha az adatbázisban megnő, ez a token azonnal érvénytelenné válik
-            { userId: user.id, role: user.role, tv: user.token_verzio },
-            env.JWT_SECRET as string, 
-            { expiresIn: '1d' }
-        );
-
-        // 4. A tokent beleteszi egy szigorúan védett Sütibe
-        cookies.set('session_token', token, {
-            path: '/', 
-            httpOnly: true, 
-            sameSite: 'strict', 
-            secure: process.env.NODE_ENV === 'production', 
-            maxAge: 60 * 60 * 24 
-        });
+        // 3-4. JWT token gyártás és munkamenet süti beállítása
+        munkamenetInditasa(cookies, user);
 
         await logger.info('LOGIN', `Sikeres bejelentkezés (${user.email})`, user.id);
 

@@ -35,6 +35,10 @@ model Felhasznalok {
   email_verified     Boolean  @default(false) 
   verification_token String?  @unique
 
+  // ─── GOOGLE BEJELENTKEZÉS ───
+  // A Google fiók állandó azonosítója ("sub"); jelszó nélküli (csak Google-ös) fióknál a password_hash üres
+  google_id          String?  @unique
+
   // ─── ELFELEJTETT JELSZÓ ───
   // A tokennek csak a SHA-256 hash-ét tároljuk, így egy adatbázis szivárgás esetén sem használható fel
   jelszo_reset_token   String?   @unique

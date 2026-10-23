@@ -32,7 +32,7 @@ A **News Trends** egy B2B SaaS webalkalmazás, amely cégvezetőknek és elemző
 | Keretrendszer | SvelteKit 2, Svelte 5, TypeScript, Vite |
 | Felület | Tailwind CSS, Flowbite-Svelte, ApexCharts |
 | Adatbázis | PostgreSQL 17, Prisma ORM |
-| Hitelesítés | JWT (HttpOnly süti), bcrypt, e-mail megerősítés |
+| Hitelesítés | JWT (HttpOnly süti), bcrypt, e-mail megerősítés, Google OAuth 2.0 (PKCE) |
 | AI | OpenAI SDK (OpenAI, Groq), Anthropic és Gemini REST API, Zod validáció |
 | Ütemezés | node-cron |
 | Integrációk | Stripe, Számlázz.hu, Resend (HTTPS e-mail API) / Nodemailer (SMTP), Discord webhook, Telegram Bot API |

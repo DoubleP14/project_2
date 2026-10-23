@@ -20,7 +20,7 @@
 
     const adatkezelesek = [
         {
-            adat: 'Felhasználónév, e-mail cím, jelszó (bcrypt hash formában)',
+            adat: 'Felhasználónév, e-mail cím, jelszó (bcrypt hash formában); Google-belépésnél a Google-fiók azonosítója és neve',
             cel: 'Fiók létrehozása, bejelentkezés, e-mail cím megerősítése',
             jogalap: 'Szerződés teljesítése – GDPR 6. cikk (1) b)'
         },
@@ -49,6 +49,7 @@
     const feldolgozok = [
         { nev: 'DigitalOcean, LLC', szerep: 'Tárhelyszolgáltatás: az alkalmazás és az adatbázis szervere. Az adatok az Európai Unióban, a frankfurti (Németország) adatközpontban tárolódnak.' },
         { nev: 'Cloudflare, Inc.', szerep: 'DNS, HTTPS titkosítás és túlterheléses támadások elleni védelem. A forgalom áthalad a hálózatán, adatot tartósan nem tárol.' },
+        { nev: 'Google LLC', szerep: 'Bejelentkezés Google-fiókkal (csak ha a felhasználó ezt választja): a Google átadja a fiók azonosítóját, e-mail címét és nevét. Jelszót nem kapunk meg.' },
         { nev: 'Stripe Payments Europe Ltd.', szerep: 'Bankkártyás fizetés lebonyolítása. A kártyaadatok kizárólag a Stripe rendszerébe kerülnek, mi nem látjuk és nem tároljuk őket.' },
         { nev: 'KBOSS.hu Kft. (Számlázz.hu)', szerep: 'Elektronikus számla kiállítása és kézbesítése e-mailben.' },
         { nev: 'A felhasználó által választott AI szolgáltató (OpenAI, Anthropic, Google, Groq)', szerep: 'A hírcikkek szövegének elemzése a felhasználó saját API kulcsával. Személyes adatot nem továbbítunk.' },
