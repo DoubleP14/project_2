@@ -251,6 +251,7 @@ scp root@A_DROPLET_IP_CIME:/opt/newstrends/backups/newstrends_*.sql.gz .
 | Cloudflare **525/526** hiba | Tanúsítvány gond: ellenőrizd a `deploy/certs` fájlokat és hogy a mód **Full (strict)** |
 | **502 Bad Gateway** | Az alkalmazás nem indult el: `docker compose logs app` |
 | Az alkalmazás leáll induláskor | Hiányzó változó (`JWT_SECRET`, `ENCRYPTION_KEY`) vagy adatvesztéssel járó séma változás – nézd meg a naplót |
+| 502 frissítés után, a naplóban `Use the --accept-data-loss flag` | Új **egyedi (`@unique`)** oszlop került a sémába – a Prisma figyelmeztet, és az indítás szándékosan leáll. Ha az oszlop új (minden sora üres), biztonságos: `docker compose run --rm --entrypoint "npx prisma db push --skip-generate --accept-data-loss" app && docker compose up -d` |
 | Űrlap küldésnél **403** | A `.env`-ben a `DOMAIN` nem egyezik a böngészőben használt címmel |
 | Nem érkeznek e-mailek | `RESEND_API_KEY` hiányzik, vagy a domain nincs **Verified** állapotban a Resendben |
 | Rossz domain az e-mail linkekben | A `DOMAIN` változó hibás a `.env`-ben |
