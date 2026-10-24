@@ -3,13 +3,14 @@ import { services } from '$lib/server';
 import { redirect, isRedirect } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
 import { getStripe } from '$lib/server/stripe';
+import { FIZETOS_CSOMAGOK, fizetosCsomagE, ujLejaratSzamitasa, ELOFIZETESI_IDOSZAK_NAP } from '$lib/csomagok';
 
 export const load: PageServerLoad = async ({ url, locals }) => {
     const user = locals.user;
     if (!user) throw redirect(303, '/login');
 
     const tier = url.searchParams.get('tier') || 'pro';
-    if (tier !== 'pro' && tier !== 'enterprise') {
+    if (!fizetosCsomagE(tier)) {
         throw redirect(303, '/settings');
     }
 
@@ -18,11 +19,19 @@ export const load: PageServerLoad = async ({ url, locals }) => {
         where: { id: user.id }
     });
 
+    // Előnézet: meddig lesz érvényes a csomag a fizetés után (ugyanaz a számítás, mint a webhookban)
+    const { lejarat, jovairtNap } = ujLejaratSzamitasa(teljesFelhasznalo?.subscription_tier, teljesFelhasznalo?.elofizetes_lejarat, tier);
+
     const packageDetails = {
         tier: tier,
-        name: tier === 'pro' ? 'Pro Analyst Csomag' : 'Enterprise Csomag',
-        price: tier === 'pro' ? 2990 : 9990, 
-        email: teljesFelhasznalo?.email || ''
+        name: FIZETOS_CSOMAGOK[tier].nev,
+        price: FIZETOS_CSOMAGOK[tier].ar,
+        email: teljesFelhasznalo?.email || '',
+        idoszakNap: ELOFIZETESI_IDOSZAK_NAP,
+        jelenlegiTier: teljesFelhasznalo?.subscription_tier ?? null,
+        jelenlegiLejarat: teljesFelhasznalo?.elofizetes_lejarat ?? null,
+        ujLejarat: lejarat,
+        jovairtNap
     };
 
     return { packageDetails };
@@ -39,12 +48,12 @@ export const actions: Actions = {
         let tier = formData.get('tier')?.toString() || url.searchParams.get('tier');
         
         // Biztonsági védelem: ha valaki átírná a HTML-t valami másra
-        if (tier !== 'pro' && tier !== 'enterprise') {
+        if (!fizetosCsomagE(tier)) {
             tier = 'pro';
         }
 
-        const price = tier === 'pro' ? 2990 : 9990;
-        const name = tier === 'pro' ? 'Pro Analyst Csomag' : 'Enterprise Csomag';
+        const price = FIZETOS_CSOMAGOK[tier as keyof typeof FIZETOS_CSOMAGOK].ar;
+        const name = FIZETOS_CSOMAGOK[tier as keyof typeof FIZETOS_CSOMAGOK].nev;
 
         const prisma = services.db;
         const teljesFelhasznalo = await prisma.felhasznalok.findUnique({
@@ -61,7 +70,7 @@ export const actions: Actions = {
                             currency: 'huf',
                             product_data: {
                                 name: name,
-                                description: 'News Trends - Premium hozzáférés'
+                                description: 'News Trends – 30 napos előre fizetett hozzáférés (nincs automatikus megújítás)'
                             },
                             unit_amount: price * 100, 
                         },

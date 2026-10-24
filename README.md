@@ -22,7 +22,7 @@ A **News Trends** egy B2B SaaS webalkalmazás, amely cégvezetőknek és elemző
 - **Statisztika:** hangulat- és hírérték-megoszlás, forrásonkénti állapot.
 - **Forrásfigyelés:** a felhasználó látja forrásai állapotát (működik / hiba / kikapcsolva); 24 egymás utáni hiba után a rendszer automatikusan kikapcsolja a forrást és e-mailben értesít.
 - **Admin központ:** felhasználók felfüggesztése, rendszernapló, figyelmet igénylő források (naplózott admin kikapcsolással), kézi frissítés és takarítás.
-- **Előfizetés:** Starter / Pro Analyst / Enterprise csomagok, Stripe fizetés, automatikus e-számla.
+- **Előfizetés:** Starter / Pro Analyst / Enterprise csomagok, előre fizetett 30 napos hozzáférés (nincs automatikus megújítás), hosszabbítás és csomagváltás értékarányos jóváírással, lejárati emlékeztető, Stripe fizetés, automatikus e-számla.
 - **GDPR:** adatkezelési tájékoztató (`/adatvedelem`), visszavonhatatlan fióktörlés minden kapcsolódó adattal együtt.
 
 ## Technológiák
@@ -131,6 +131,7 @@ Config ──► Services ──► Modules ──► Jobs / Route-ok
 | Időpont | Feladat |
 |---|---|
 | Minden óra 0. perce | Minden aktív felhasználó forrásainak letöltése és AI elemzése |
+| Minden nap 02:00 | Előfizetések: lejárati emlékeztető (3 nappal előtte), lejárt csomagok visszaváltása Starterre |
 | Minden nap 03:00 | A 7 napnál régebbi hírek végleges törlése |
 
 A takarítás külső ütemezőből is indítható: `GET /api/news/cleanup` a `Authorization: Bearer <CRON_SECRET>` fejléccel.

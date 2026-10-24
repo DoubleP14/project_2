@@ -5,6 +5,7 @@
     import { InfoCircleSolid, LockSolid, BellSolid, GlobeSolid, EditOutline, TrashBinOutline, UserCircleSolid, AdjustmentsVerticalSolid, CreditCardSolid, CheckCircleSolid, CloseCircleSolid, ExclamationCircleOutline } from 'flowbite-svelte-icons';
     import { formatDate } from '$lib/utils/format-date';
     import { ALAPERTELMEZETT_MODELLEK } from '$lib/aiModellek';
+    import { hatralevoNapok } from '$lib/csomagok';
 
     export let data;
     export let form;
@@ -108,12 +109,6 @@
         </Badge>
     </div>
 
-    {#if $page.url.searchParams.get('downgraded')}
-        <Alert color="blue" class="mb-6 animate-fade-in">
-            <InfoCircleSolid slot="icon" class="w-4 h-4" />
-            <span class="font-medium">Sikeresen visszaváltottál az ingyenes csomagra. A rendszer eltávolította a prémium hozzáféréseket.</span>
-        </Alert>
-    {/if}
 
     {#if form?.message}
         <Alert color={form.success ? 'green' : 'red'} class="mb-6 animate-fade-in">
@@ -475,7 +470,7 @@
                         <h3 class="text-xl font-bold mb-2 text-gray-900 dark:text-white">Starter</h3>
                         <div class="flex items-baseline text-gray-900 dark:text-white mb-6">
                             <span class="text-3xl font-extrabold">0 Ft</span>
-                            <span class="text-sm text-gray-500 ml-1">/hó</span>
+                            <span class="text-sm text-gray-500 ml-1">/30 nap</span>
                         </div>
                         <ul class="space-y-3 text-sm text-gray-600 dark:text-gray-300 mb-6">
                             <li class="flex items-center gap-2"><CheckCircleSolid class="w-4 h-4 text-blue-500"/> Max 3 aktív hírforrás</li>
@@ -494,7 +489,7 @@
                         <h3 class="text-xl font-bold mb-2 text-purple-700 dark:text-purple-400">Pro Analyst</h3>
                         <div class="flex items-baseline text-gray-900 dark:text-white mb-6">
                             <span class="text-3xl font-extrabold">2.990 Ft</span>
-                            <span class="text-sm text-gray-500 ml-1">/hó</span>
+                            <span class="text-sm text-gray-500 ml-1">/30 nap</span>
                         </div>
                         <ul class="space-y-3 text-sm text-gray-700 dark:text-gray-200 mb-6 font-medium">
                             <li class="flex items-center gap-2"><CheckCircleSolid class="w-4 h-4 text-purple-600"/> Végtelen hírforrás (RSS + YT)</li>
@@ -503,7 +498,7 @@
                         </ul>
                     </div>
                     <Button href="/checkout?tier=pro" color="purple" class="w-full text-base font-bold shadow-md">
-                        {data.felhasznalo?.subscription_tier === 'pro' ? 'Aktív Csomag Kezelése' : 'Előfizetés indítása'}
+                        {data.felhasznalo?.subscription_tier === 'pro' ? 'Hosszabbítás +30 nap' : data.felhasznalo?.subscription_tier === 'enterprise' ? 'Váltás Pro csomagra' : 'Előfizetés indítása'}
                     </Button>
                 </Card>
 
@@ -512,7 +507,7 @@
                         <h3 class="text-xl font-bold mb-2 text-gray-900 dark:text-white">Enterprise</h3>
                         <div class="flex items-baseline text-gray-900 dark:text-white mb-6">
                             <span class="text-3xl font-extrabold">9.990 Ft</span>
-                            <span class="text-sm text-gray-500 ml-1">/hó</span>
+                            <span class="text-sm text-gray-500 ml-1">/30 nap</span>
                         </div>
                         <ul class="space-y-3 text-sm text-gray-600 dark:text-gray-300 mb-6">
                             <li class="flex items-center gap-2"><CheckCircleSolid class="w-4 h-4 text-gray-400"/> Minden Pro Analyst funkció</li>
@@ -521,24 +516,44 @@
                         </ul>
                     </div>
                     <Button href="/checkout?tier=enterprise" color="dark" class="w-full">
-                        {data.felhasznalo?.subscription_tier === 'enterprise' ? 'Aktív Csomag Kezelése' : 'Céges csatlakozás'}
+                        {data.felhasznalo?.subscription_tier === 'enterprise' ? 'Hosszabbítás +30 nap' : data.felhasznalo?.subscription_tier === 'pro' ? 'Váltás Enterprise csomagra' : 'Céges csatlakozás'}
                     </Button>
                 </Card>
             </div>
 
-            {#if data.felhasznalo?.subscription_tier === 'pro' || data.felhasznalo?.subscription_tier === 'enterprise'}
-                <div class="mt-12 p-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl max-w-3xl mx-auto text-center">
-                    <h3 class="text-lg font-bold text-red-700 dark:text-red-400 mb-2">Veszélyzóna (Csomag lemondása)</h3>
-                    <p class="text-sm text-red-600 dark:text-red-300 mb-4">
-                        Ha visszaváltasz az ingyenes Starter csomagra, azonnal elveszíted a hozzáférést a prémium hírforrásokhoz, az azonnali riasztásokhoz és az AI klaszterezéshez.
-                    </p>
-                    <form method="POST" action="?/downgrade" use:enhance>
-                        <Button type="submit" color="red" class="font-bold shadow-sm">
-                            Igen, lemondom a prémium csomagot
+            <!-- ELŐFIZETÉS ÁLLAPOTA (előre fizetett, automatikus megújítás nélkül) -->
+            <div class="mt-10 p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl max-w-3xl mx-auto shadow-sm">
+                {#if data.felhasznalo?.subscription_tier === 'pro' || data.felhasznalo?.subscription_tier === 'enterprise'}
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-900 dark:text-white">
+                                Aktív csomag: {data.felhasznalo.subscription_tier === 'pro' ? 'Pro Analyst' : 'Enterprise'}
+                            </h3>
+                            {#if data.felhasznalo.elofizetes_lejarat}
+                                <p class="text-sm text-gray-600 dark:text-gray-300 mt-1">
+                                    Érvényes: <b>{formatDate('%Y. $M %d', data.felhasznalo.elofizetes_lejarat)}</b>-ig
+                                    ({hatralevoNapok(data.felhasznalo.elofizetes_lejarat)} nap van hátra)
+                                </p>
+                            {:else}
+                                <p class="text-sm text-gray-600 dark:text-gray-300 mt-1">Határozatlan ideig érvényes.</p>
+                            {/if}
+                        </div>
+                        <Button href="/checkout?tier={data.felhasznalo.subscription_tier}" color="purple" class="shrink-0 font-semibold">
+                            Hosszabbítás +30 nap
                         </Button>
-                    </form>
-                </div>
-            {/if}
+                    </div>
+                    <p class="mt-4 text-xs text-gray-500 dark:text-gray-400">
+                        Az előfizetés előre fizetett, <b>nincs automatikus megújítás és nincs rejtett terhelés</b> – lemondani sem kell. A lejárat előtt 3 nappal e-mailben emlékeztetünk;
+                        ha nem hosszabbítasz, a lejáratkor a fiókod az ingyenes Starter csomagra vált, az adataid megmaradnak.
+                        Hosszabbításkor a hátralévő napjaid nem vesznek el, csomagváltáskor pedig értékarányosan jóváírjuk őket.
+                    </p>
+                {:else}
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white">Jelenlegi csomag: Starter (ingyenes)</h3>
+                    <p class="mt-1 text-sm text-gray-600 dark:text-gray-300">
+                        A fizetős csomagok 30 napra szólnak, előre fizetve – nincs automatikus megújítás, így lemondani sem kell.
+                    </p>
+                {/if}
+            </div>
 
             <!-- BEJELENTKEZÉSI MÓDOK -->
             <div class="mt-12 border-t border-gray-200 dark:border-gray-700 pt-8">

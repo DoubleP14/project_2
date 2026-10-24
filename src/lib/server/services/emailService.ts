@@ -61,6 +61,40 @@ export const emailService = {
         });
     },
 
+    // Előre fizetett csomag hamarosan lejár (emlékeztető)
+    sendElofizetesLejarEmail: async (email: string, csomagNev: string, tier: string, lejaratSzoveg: string) => {
+        const hosszabbitasUrl = `${env.ORIGIN || 'http://localhost:5173'}/checkout?tier=${tier}`;
+
+        await levelKuldese({
+            to: email,
+            subject: `⏳ Hamarosan lejár a ${csomagNev} – News Trends`,
+            html: gombosEmailSablon(
+                'Hamarosan lejár az előfizetésed',
+                `A(z) <b>${escapeHtml(csomagNev)}</b> előfizetésed <b>${escapeHtml(lejaratSzoveg)}</b>-ig érvényes. Ha szeretnéd tovább használni a prémium funkciókat, hosszabbítsd meg – a hátralévő napjaid nem vesznek el, az új 30 nap a jelenlegi lejárathoz adódik.`,
+                'Hosszabbítás +30 nap',
+                hosszabbitasUrl,
+                'Automatikus megújítás és terhelés nincs: ha nem hosszabbítasz, a lejárat után a fiókod az ingyenes Starter csomagra vált, az adataid megmaradnak.'
+            )
+        });
+    },
+
+    // Előre fizetett csomag lejárt, a fiók Starterre váltott
+    sendElofizetesLejartEmail: async (email: string, csomagNev: string, tier: string) => {
+        const ujraUrl = `${env.ORIGIN || 'http://localhost:5173'}/checkout?tier=${tier}`;
+
+        await levelKuldese({
+            to: email,
+            subject: `Lejárt a ${csomagNev} – News Trends`,
+            html: gombosEmailSablon(
+                'Lejárt az előfizetésed',
+                `A(z) <b>${escapeHtml(csomagNev)}</b> előfizetésed lejárt, ezért a fiókod az ingyenes <b>Starter</b> csomagra váltott. A forrásaid és beállításaid megmaradtak; a Starter korlátain felüli források és a Discord/Telegram riasztás szünetel.`,
+                'Előfizetés újraindítása',
+                ujraUrl,
+                'Bármikor újraindíthatod az előfizetést – minden korábbi beállításod azonnal újra életbe lép.'
+            )
+        });
+    },
+
     // Tartósan hibás hírforrás automatikus kikapcsolásáról
     sendForrasKikapcsolvaEmail: async (email: string, forrasNev: string, hibaUzenet: string) => {
         const forrasokUrl = `${env.ORIGIN || 'http://localhost:5173'}/settings?tab=forrasok`;

@@ -29,6 +29,10 @@ model Felhasznalok {
   password_hash       String?
   role                String?   @default("user")
   subscription_tier   String?   @default("alap")
+  // Előre fizetett csomag lejárata (null = nincs lejárat, pl. ingyenes csomag)
+  elofizetes_lejarat     DateTime?
+  // Az utoljára feldolgozott Stripe fizetés azonosítója – a webhook ismételt kézbesítésénél nem írunk jóvá kétszer
+  utolso_fizetes_session String?
   aktiv              Boolean  @default(true) 
 
   // ─── E-MAIL MEGERŐSÍTÉSE ───
