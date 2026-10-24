@@ -15,6 +15,9 @@ const AiValaszSchema = z.object({
     kulcsszavak: z.array(z.string()).catch([])
 });
 
+// A klaszterezésnél ennyi legfrissebb hír címével vetjük össze az új hírt
+const KLASZTER_LISTA_MERET = 40;
+
 export function createAiService(fallbackApiKey?: string) {
 
     // Sikertelen elemzés eredménye: a hiba mező jelzi a hívónak, hogy NE mentse el,
@@ -127,10 +130,14 @@ export function createAiService(fallbackApiKey?: string) {
             apiKey,
             ...(provider === 'GROQ' ? { baseURL: 'https://api.groq.com/openai/v1' } : {})
         });
+        // A "gondolkodó" gpt-oss modelleknél alacsony gondolkodási szint: ehhez az egyszerű feladathoz elég,
+        // és jóval kevesebb tokent használ (az ingyenes Groq napi tokenkerete így tovább kitart)
+        const gondolkodoModell = provider === 'GROQ' && modell.startsWith('openai/gpt-oss');
         const response = await openai.chat.completions.create({
             model: modell,
             messages: [{ role: 'user', content: prompt }],
-            ...(jsonValasz ? { response_format: { type: 'json_object' as const } } : {})
+            ...(jsonValasz ? { response_format: { type: 'json_object' as const } } : {}),
+            ...(gondolkodoModell ? { reasoning_effort: 'low' as const } : {})
         });
         return response.choices[0]?.message?.content ?? '';
     };
@@ -200,7 +207,11 @@ export function createAiService(fallbackApiKey?: string) {
             const fallbackClusterId = `cluster_${Date.now()}_${Math.random().toString(36).substring(7)}`;
             if (frissHirek.length === 0) return fallbackClusterId;
 
-            const hirekLista = frissHirek.map(h => `[ID: ${h.id}] Cím: ${h.cim}`).join('\n');
+            // Tokentakarékosság: csak a legfrissebb KLASZTER_LISTA_MERET hír címét küldjük el összevetésre
+            const hirekLista = [...frissHirek]
+                .sort((a, b) => new Date(b.datum ?? 0).getTime() - new Date(a.datum ?? 0).getTime())
+                .slice(0, KLASZTER_LISTA_MERET)
+                .map(h => `[ID: ${h.id}] Cím: ${h.cim}`).join('\n');
             const prompt = `
             Te egy profi főszerkesztő vagy. A feladatod, hogy megállapítsd, egy beérkező új hír ugyanarról az ESEMÉNYRŐL vagy TÉMÁRÓL szól-e, mint az alábbi listában szereplő friss hírek bármelyike.
             Nem a szavakat kell egyeztetned, hanem a JELENTÉST! (Pl. a "Csúszik a GTA 6" és a "Késik a Rockstar játéka" UGYANAZ a hír).

@@ -7,6 +7,24 @@ import { logger } from '$lib/server/services/loggerService';
 import { KATEGORIA_SZOTAR } from '$lib/kategoriak';
 import { AI_SZOLGALTATOK, ervenyesModellNev } from '$lib/aiModellek';
 import { jelszoResetLinkKuldese } from '$lib/server/jelszoReset';
+import { csatornaLetoltese, rssFelderites } from '$lib/server/rssLetolto';
+
+// RSS forrás ellenőrzése mentés előtt: a megadott RSS link olvasható-e, vagy ha nincs megadva,
+// automatikusan megkeressük a weboldal címéből. Így a felhasználó azonnal visszajelzést kap.
+async function rssEllenorzes(forrasUrl: string, rssUrl: string | null): Promise<{ rssUrl: string; felderitve: boolean } | { hiba: string }> {
+    if (rssUrl) {
+        try {
+            await csatornaLetoltese(rssUrl);
+            return { rssUrl, felderitve: false };
+        } catch (e) {
+            return { hiba: `Az RSS link nem olvasható: ${e instanceof Error ? e.message : 'ismeretlen hiba'}` };
+        }
+    }
+    const talalt = await rssFelderites(forrasUrl);
+    return talalt
+        ? { rssUrl: talalt, felderitve: true }
+        : { hiba: 'Ezen a címen nem találtunk RSS csatornát. Add meg kézzel a hírportál RSS linkjét (gyakran: /rss vagy /feed).' };
+}
 
 // --- CSOMAGKORLÁTOK (Starter / ingyenes csomag) ---
 const STARTER_MAX_AKTIV_FORRAS = 3;
@@ -209,19 +227,29 @@ export const actions: Actions = {
             }
         }
 
+        // RSS forrásnál a csatornát mentés előtt ellenőrizzük / felderítjük
+        let vegsoRssUrl = rss_url;
+        let felderitveUzenet = '';
+        if (tipus === 'RSS') {
+            const ell = await rssEllenorzes(forras_url, rss_url);
+            if ('hiba' in ell) return fail(400, { message: ell.hiba });
+            vegsoRssUrl = ell.rssUrl;
+            if (ell.felderitve) felderitveUzenet = ` Az RSS csatornát automatikusan megtaláltuk: ${ell.rssUrl}`;
+        }
+
         try {
             await services.db.hirForrasok.create({
                 data: {
                     felhasznalo_id: user.id,
                     forras_nev: forras_nev,
                     forras_url: forras_url,
-                    rss_url: rss_url,
+                    rss_url: vegsoRssUrl,
                     is_own_source: is_own_source,
                     tipus: tipus,
                     szuro_kifejezesek: szuro_kifejezesek
                 }
             });
-            return { success: true, message: 'Forrás sikeresen hozzáadva!' };
+            return { success: true, message: `Forrás sikeresen hozzáadva!${felderitveUzenet}` };
         } catch (error) {
             console.error('Hiba a forrás hozzáadásakor:', error);
             return fail(500, { message: 'Belső hiba történt a mentés során.' });
@@ -313,13 +341,24 @@ export const actions: Actions = {
             const forras = await prisma.hirForrasok.findUnique({ where: { id: id } });
             if (!forras || forras.felhasznalo_id !== user.id) return fail(403, { message: 'Nincs jogod.' });
 
+            // RSS forrásnál csak akkor ellenőrzünk, ha az RSS link változott vagy hiányzik
+            // (pl. a "Saját forrás" átkapcsolása ne bukjon el egy átmenetileg elérhetetlen portál miatt)
+            let vegsoRssUrl = rss_url;
+            let felderitveUzenet = '';
+            if (forras.tipus === 'RSS' && (!rss_url || rss_url !== forras.rss_url)) {
+                const ell = await rssEllenorzes(forras_url, rss_url);
+                if ('hiba' in ell) return fail(400, { message: ell.hiba });
+                vegsoRssUrl = ell.rssUrl;
+                if (ell.felderitve) felderitveUzenet = ` Az RSS csatornát automatikusan megtaláltuk: ${ell.rssUrl}`;
+            }
+
             await prisma.hirForrasok.update({
                 where: { id: id },
                 // Módosított beállítással a korábbi hibák elévülnek (a következő frissítés dönt)
-                data: { forras_nev, forras_url, rss_url, szuro_kifejezesek, is_own_source, hiba_szamlalo: 0, utolso_hiba: null }
+                data: { forras_nev, forras_url, rss_url: vegsoRssUrl, szuro_kifejezesek, is_own_source, hiba_szamlalo: 0, utolso_hiba: null }
             });
 
-            return { success: true, message: 'Forrás sikeresen frissítve!' };
+            return { success: true, message: `Forrás sikeresen frissítve!${felderitveUzenet}` };
         } catch (error) {
             console.error('Hiba forrás szerkesztésekor:', error);
             return fail(500, { message: 'Hiba a szerkesztés során.' });

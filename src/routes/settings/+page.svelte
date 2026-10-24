@@ -397,8 +397,9 @@
                         </div>
                         {#if selectedSourceType === 'RSS'}
                             <div class="md:col-span-2 animate-fade-in">
-                                <Label for="rss_url" class="mb-2 font-medium">RSS link (Opcionális)</Label>
+                                <Label for="rss_url" class="mb-2 font-medium">RSS link (ha üres, automatikusan keressük)</Label>
                                 <Input type="url" id="rss_url" name="rss_url" placeholder="https://telex.hu/rss" />
+                                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Ha üresen hagyod, a weboldal címéből automatikusan megkeressük. Mentéskor ellenőrizzük, hogy olvasható-e.</p>
                             </div>
                         {/if}
                         <div class="md:col-span-2 animate-fade-in">
