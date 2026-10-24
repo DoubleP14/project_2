@@ -3,6 +3,10 @@
     import { Button, Card } from 'flowbite-svelte';
     import { ShieldCheckSolid, ArrowLeftOutline, CreditCardSolid } from 'flowbite-svelte-icons';
     import { page } from '$app/stores';
+    import { formatDate } from '$lib/utils/format-date';
+
+    // "2026. november 23" – a "-ig" toldalékkal: "2026. november 23-ig"
+    const datum = (d: Date | string) => formatDate('%Y. $M %d', d);
 
     export let data;
 </script>
@@ -34,13 +38,24 @@
                 <span class="text-4xl font-black text-gray-950 dark:text-white">
                     {data.packageDetails.price.toLocaleString('hu-HU')} Ft
                 </span>
-                <span class="text-gray-500 text-sm">/ egyszeri díj</span>
+                <span class="text-gray-500 text-sm">/ {data.packageDetails.idoszakNap} nap</span>
             </div>
+            <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">Egyszeri, előre fizetett díj – nincs automatikus megújítás és rejtett terhelés.</p>
+        </div>
+
+        <!-- ÉRVÉNYESSÉG ELŐNÉZET -->
+        <div class="mb-6 p-4 rounded-xl border border-blue-200 dark:border-blue-900 bg-blue-50 dark:bg-blue-950/30 text-sm text-blue-900 dark:text-blue-200">
+            <p>A fizetés után a csomag <b>{datum(data.packageDetails.ujLejarat)}</b>-ig lesz érvényes.</p>
+            {#if data.packageDetails.jovairtNap > 0}
+                <p class="mt-1 text-xs">
+                    A jelenlegi csomagod hátralévő ideje ({data.packageDetails.jelenlegiLejarat ? datum(data.packageDetails.jelenlegiLejarat) : ''}-ig) értékarányosan jóváírásra kerül: +{data.packageDetails.jovairtNap} nap.
+                </p>
+            {/if}
         </div>
 
         {#if $page.url.searchParams.get('canceled')}
             <div class="p-4 mb-6 text-sm text-amber-800 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg">
-                ⚠️ **A tranzakció meg lett szakítva.** Nem történt levonás. Ha meggondoltad magad, alább újra megpróbálhatod.
+                ⚠️ <b>A tranzakció meg lett szakítva.</b> Nem történt levonás. Ha meggondoltad magad, alább újra megpróbálhatod.
             </div>
         {/if}
 
@@ -65,7 +80,7 @@
         <div class="mt-6 text-center text-xs text-gray-400 space-y-1">
             <p class="flex items-center justify-center gap-1">
                 <ShieldCheckSolid class="w-4 h-4 text-green-500" /> 
-                A fizetést a 256 bites titkosítású **Stripe** kezeli.
+                A fizetést a 256 bites titkosítású <b>Stripe</b> kezeli.
             </p>
             <p>A kártyaadatok soha nem érintik a mi szerverünket.</p>
         </div>

@@ -6,6 +6,7 @@ import { env } from '$env/dynamic/private';
 import { getStripe } from '$lib/server/stripe';
 import { logger } from '$lib/server/services/loggerService';
 import { szamlaService } from '$lib/server/services/szamlaService';
+import { FIZETOS_CSOMAGOK, fizetosCsomagE, ujLejaratSzamitasa } from '$lib/csomagok';
 
 export const POST: RequestHandler = async ({ request }) => {
     const payload = await request.text();
@@ -26,29 +27,37 @@ export const POST: RequestHandler = async ({ request }) => {
         const userId = Number(session.metadata?.userId);
         const tier = session.metadata?.tier;
 
-        if (userId && tier) {
+        if (userId && fizetosCsomagE(tier)) {
             console.log(`✅ Sikeres fizetés érzékelve! Felhasználó ID: ${userId}, Új csomag: ${tier}`);
-            
+
             try {
-                // 1. Felhasználó szintjének frissítése a DB-ben
+                const user = await services.db.felhasznalok.findUnique({ where: { id: userId } });
+                if (!user) return new Response(JSON.stringify({ received: true }), { status: 200 });
+
+                // IDEMPOTENCIA: a Stripe ugyanazt az eseményt többször is kézbesítheti – egy fizetést csak egyszer írunk jóvá
+                if (user.utolso_fizetes_session === session.id) {
+                    console.log(`ℹ️ A(z) ${session.id} fizetés már feldolgozva, ismételt kézbesítés kihagyva.`);
+                    return new Response(JSON.stringify({ received: true }), { status: 200 });
+                }
+
+                // 1. Előre fizetett időszak: +30 nap (aktív csomag mellett a hátralévő napok jóváírásával)
+                const { lejarat, jovairtNap } = ujLejaratSzamitasa(user.subscription_tier, user.elofizetes_lejarat, tier);
                 await services.db.felhasznalok.update({
                     where: { id: userId },
-                    data: { subscription_tier: tier }
+                    data: { subscription_tier: tier, elofizetes_lejarat: lejarat, utolso_fizetes_session: session.id }
                 });
-                console.log(`✅ Adatbázis frissítve.`);
 
                 // Sikeres csomagváltás naplózása
-                await logger.info('PAYMENT_SUCCESS', `Előfizetés sikeresen frissítve erre: ${tier.toUpperCase()}`, userId);
+                await logger.info(
+                    'PAYMENT_SUCCESS',
+                    `Előfizetés: ${tier.toUpperCase()}, lejárat: ${lejarat.toISOString().slice(0, 10)}` + (jovairtNap > 0 ? ` (${jovairtNap} nap jóváírva)` : ''),
+                    userId
+                );
 
                 // 2. ─── AUTOMATIKUS SZÁMLÁZÁS INDÍTÁSA ───
-                // Lekéri a felhasználó emailjét és felhasználónevét a számlához
-                const user = await services.db.felhasznalok.findUnique({
-                    where: { id: userId }
-                });
-
-                if (user) {
-                    const bruttoAr = tier === 'pro' ? 2990 : 9990;
-                    const megnevezes = tier === 'pro' ? 'Pro Analyst Csomag' : 'Enterprise Csomag';
+                {
+                    const bruttoAr = FIZETOS_CSOMAGOK[tier].ar;
+                    const megnevezes = FIZETOS_CSOMAGOK[tier].nev;
 
                     try {
                         // Meghívja a számlázó szolgáltatást

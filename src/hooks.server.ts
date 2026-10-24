@@ -22,6 +22,15 @@ if (!(globalThis as any).__robotPilotaInditva) {
     });
 
     // VÉGLEGES TAKARÍTÓ (Fut minden hajnal 3:00-kor)
+    // ELŐFIZETÉSEK (Fut minden hajnal 2:00-kor): lejárati emlékeztetők és lejárt csomagok visszaváltása
+    cron.schedule('0 2 * * *', async () => {
+        try {
+            await jobs.elofizetesekKezelese();
+        } catch (error) {
+            console.error('[CRON] Hiba az előfizetések kezelése során:', error);
+        }
+    });
+
     cron.schedule('0 3 * * *', async () => {
         console.log('\n[CRON] Éjszakai adatbázis takarítás (Hard Delete) indul...');
         try {

@@ -2,6 +2,9 @@
 // Rendszerszintű háttérfeladatok: ezeket hívja a cron ÉS az Admin felület is,
 // így a két belépési pont pontosan ugyanazt a logikát futtatja.
 import { modules, services } from './index';
+import { emailService } from './services/emailService';
+import { FIZETOS_CSOMAGOK, type FizetosCsomag } from '$lib/csomagok';
+import { formatDate } from '$lib/utils/format-date';
 
 // Globális lakat: egyszerre csak egy teljes frissítés futhat (cron vagy admin indítás)
 let frissitesFolyamatban = false;
@@ -58,6 +61,48 @@ export const jobs = {
         } finally {
             frissitesFolyamatban = false;
         }
+    },
+
+    // ELŐRE FIZETETT ELŐFIZETÉSEK: emlékeztető lejárat előtt, lejáratkor visszaváltás Starterre
+    elofizetesekKezelese: async () => {
+        const most = new Date();
+        const NAP_MS = 24 * 60 * 60 * 1000;
+        const fizetos = { in: ['pro', 'enterprise'] };
+
+        // 1. Lejárt csomagok -> Starter (a prémium értesítési csatorna is visszaáll e-mailre)
+        const lejartak = await services.db.felhasznalok.findMany({
+            where: { subscription_tier: fizetos, elofizetes_lejarat: { lt: most } },
+            select: { id: true, email: true, subscription_tier: true }
+        });
+        for (const u of lejartak) {
+            const tier = u.subscription_tier as FizetosCsomag;
+            await services.db.felhasznalok.update({
+                where: { id: u.id },
+                data: { subscription_tier: 'starter', elofizetes_lejarat: null, preferalt_csatorna: 'EMAIL' }
+            });
+            await services.db.rendszerNaplo.create({
+                data: { felhasznalo_id: u.id, esemeny_tipus: 'SUBSCRIPTION_EXPIRED', leiras: `A(z) ${FIZETOS_CSOMAGOK[tier].nev} lejárt, a fiók Starter csomagra váltott.` }
+            });
+            await emailService.sendElofizetesLejartEmail(u.email, FIZETOS_CSOMAGOK[tier].nev, tier)
+                .catch((e) => console.error('Nem sikerült elküldeni a lejárati értesítőt:', e));
+        }
+
+        // 2. Emlékeztető: a 2-3 nap múlva lejáró csomagok (naponta egyszer futva mindenki pontosan egy levelet kap)
+        const hamarosanLejarok = await services.db.felhasznalok.findMany({
+            where: {
+                subscription_tier: fizetos,
+                elofizetes_lejarat: { gte: new Date(most.getTime() + 2 * NAP_MS), lt: new Date(most.getTime() + 3 * NAP_MS) }
+            },
+            select: { id: true, email: true, subscription_tier: true, elofizetes_lejarat: true }
+        });
+        for (const u of hamarosanLejarok) {
+            const tier = u.subscription_tier as FizetosCsomag;
+            await emailService.sendElofizetesLejarEmail(u.email, FIZETOS_CSOMAGOK[tier].nev, tier, formatDate('%Y. $M %d', u.elofizetes_lejarat!))
+                .catch((e) => console.error('Nem sikerült elküldeni a lejárati emlékeztetőt:', e));
+        }
+
+        console.log(`[ELŐFIZETÉS] ${lejartak.length} lejárt csomag visszaváltva, ${hamarosanLejarok.length} emlékeztető kiküldve.`);
+        return { lejart: lejartak.length, emlekeztetett: hamarosanLejarok.length };
     },
 
     // VÉGLEGES TÖRLÉS: a 7 napnál régebbi hírek fizikai törlése (Hard Delete)

@@ -55,7 +55,7 @@ export const load: PageServerLoad = async ({ locals }) => {
     // BIZTONSÁG: a jelszó-hash, a tokenek és a belső azonosítók SOHA nem kerülnek a böngészőbe
     const {
         password_hash, verification_token, jelszo_reset_token, jelszo_reset_lejarat,
-        google_id, token_verzio, ...biztonsagosAdatok
+        google_id, token_verzio, utolso_fizetes_session, ...biztonsagosAdatok
     } = felhasznalo ?? ({} as NonNullable<typeof felhasznalo>);
 
     return {
@@ -372,27 +372,6 @@ export const actions: Actions = {
         } catch (error) {
             return fail(500, { message: 'Hiba a szerver oldalon a teszt során.' });
         }
-    },
-
-    // --- 8. CSOMAG LEMONDÁSA (DOWNGRADE) ---
-    downgrade: async ({ locals }) => {
-        const user = locals.user;
-        if (!user) throw redirect(303, '/login');
-
-        try {
-            await services.db.felhasznalok.update({
-                where: { id: user.id },
-                // Visszaváltáskor a prémium értesítési csatorna is visszaáll e-mailre
-                data: { subscription_tier: 'starter', preferalt_csatorna: 'EMAIL' }
-            });
-
-            await logger.info('DOWNGRADE', 'Felhasználó visszaváltott az ingyenes csomagra', user.id);
-
-        } catch (error) {
-            console.error('Hiba a csomag lemondásakor:', error);
-        }
-
-        throw redirect(303, '/settings?downgraded=true');
     },
 
     // --- JELSZÓ BEÁLLÍTÁSA / MÓDOSÍTÁSA E-MAILBEN KÜLDÖTT LINKKEL ---

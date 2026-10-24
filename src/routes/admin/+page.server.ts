@@ -24,7 +24,7 @@ export async function load({ locals }) {
         // Titkok, tokenek és titkosított adatok nem kerülnek a böngészőbe (az adminéba sem)
         const {
             password_hash, api_key, youtube_api_key, discord_webhook, telegram_chat_id,
-            verification_token, jelszo_reset_token, jelszo_reset_lejarat, google_id, token_verzio,
+            verification_token, jelszo_reset_token, jelszo_reset_lejarat, google_id, token_verzio, utolso_fizetes_session,
             ...biztonsagosAdatok
         } = f;
         return { ...biztonsagosAdatok, googleOsszekapcsolva: !!google_id };

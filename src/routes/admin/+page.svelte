@@ -180,6 +180,9 @@
                                 {:else}
                                     <Badge color="blue">Starter</Badge>
                                 {/if}
+                                {#if user.elofizetes_lejarat}
+                                    <p class="mt-1 text-xs text-gray-500">lejár: {formatDatum(user.elofizetes_lejarat)}</p>
+                                {/if}
                             </TableBodyCell>
 
                             <TableBodyCell>

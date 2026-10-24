@@ -145,7 +145,7 @@
             <div class="mx-auto max-w-2xl text-center">
                 <h2 class="text-base font-semibold leading-7 text-blue-600">Árazás</h2>
                 <p class="mt-2 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">Egyszerű, átlátható csomagok</p>
-                <p class="mt-6 text-lg leading-8 text-slate-600">Kezdd ingyen, és válts nagyobb csomagra, amikor szükséged van rá.</p>
+                <p class="mt-6 text-lg leading-8 text-slate-600">Kezdd ingyen, és válts nagyobb csomagra, amikor szükséged van rá. Előre fizetett 30 napos hozzáférés – nincs automatikus megújítás, nincs hűségidő.</p>
             </div>
             <!-- A csomagok megegyeznek a Beállítások > Előfizetés fülön lévőkkel.
                  Fizetni csak bejelentkezve lehet, ezért a gombok a regisztrációra visznek. -->
@@ -162,7 +162,7 @@
                             <p class="mt-4 text-sm leading-6 text-slate-600">{csomag.leiras}</p>
                             <p class="mt-6 flex items-baseline gap-x-1">
                                 <span class="text-4xl font-bold tracking-tight text-slate-900">{csomag.ar}</span>
-                                <span class="text-sm font-semibold text-slate-600">Ft / hó</span>
+                                <span class="text-sm font-semibold text-slate-600">Ft / 30 nap</span>
                             </p>
                             <ul class="mt-8 space-y-3 text-sm leading-6 text-slate-600">
                                 {#each csomag.funkciok as funkcio}
