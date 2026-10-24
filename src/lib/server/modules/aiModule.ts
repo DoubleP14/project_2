@@ -9,6 +9,10 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 // Egy futás alatt felhasználónként legfeljebb ennyi hír kerül elemzésre
 const ELEMZESI_LIMIT = 10;
 
+// Tokentakarékosság: az elemzéshez a cikk szövegéből legfeljebb ennyi karaktert küldünk
+// (az RSS leírások jellemzően rövidebbek, de egyes portálok a teljes cikket beleteszik)
+const MAX_SZOVEG_HOSSZ = 2500;
+
 // Témakör alapú riasztás csak ennél a hírértéknél (vagy felette) indul
 const TEMAKOR_RIASZTASI_KUSZOB = 71;
 
@@ -106,7 +110,7 @@ export function createAiModule(services: Services) {
                     }
 
                     console.log(`- Elemzés alatt: ${hir.cim}`);
-                    const szoveg = hir.tartalom || hir.cim;
+                    const szoveg = (hir.tartalom || hir.cim).slice(0, MAX_SZOVEG_HOSSZ);
                     
                     // A) AI Elemzés és B) Klaszterezés (ITT ADTUK ÁT PLUSZBAN A hir.cim-et!)
                     const aiEredmeny = await services.ai.hirElemzese(hir.cim, szoveg, provider, valasztottModell, apiKey);

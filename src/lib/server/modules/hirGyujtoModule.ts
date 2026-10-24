@@ -1,5 +1,5 @@
 // src/lib/server/modules/hirGyujtoModule.ts
-import Parser from 'rss-parser';
+import { csatornaLetoltese } from '../rssLetolto';
 import type { Services } from '../index'; 
 import { rawConfig } from '../index';
 import { decrypt } from '../crypto';
@@ -8,23 +8,16 @@ import { emailService } from '../services/emailService';
 // Ennyi egymás utáni sikertelen frissítés után (óránkénti futásnál kb. 1 nap) a forrás automatikusan kikapcsol
 const AUTO_KIKAPCSOLASI_KUSZOB = 24;
 
-// Chrome böngészőnek hazudja a robotot, hogy ne tiltsa le a 403-as hibával
-const rssParser = new Parser({
-    headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-        'Accept': 'application/rss+xml, application/xml, text/xml;q=0.9, */*;q=0.8'
-    }
-});
-
 export function createHirGyujtoModule(services: Services) {
-    
+
     // --- 1. RSS FELDOLGOZÓ ---
     const rssFeldolgozas = async (forras: any) => {
         if (!forras.rss_url) {
-            throw new Error(`Nincs megadva RSS link az adatbázisban`);
+            throw new Error('Nincs megadva RSS link – szerkeszd a forrást, és add meg a hírportál RSS címét.');
         }
 
-        const feed = await rssParser.parseURL(forras.rss_url);
+        // Közös, gyorsítótárazott letöltés: ugyanazt a csatornát egy futáson belül csak egyszer kérjük le
+        const feed = await csatornaLetoltese(forras.rss_url);
         let feldolgozottCikkek = 0;
 
         for (const item of feed.items) {
