@@ -59,6 +59,7 @@ model Felhasznalok {
   // --- BYOK Beállítások ---
   ai_provider         String?
   ai_modell           String?   // Opcionális egyedi modell (üresen a szolgáltató alapértelmezett modellje)
+  jev_api_key         String?   // Opcionális TypeSafe Jev kulcs az előszűréshez (titkosítva)
   api_key             String?
   custom_ai_endpoint  String?   
   youtube_api_key     String?   

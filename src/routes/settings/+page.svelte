@@ -166,6 +166,23 @@
                                 </p>
                             </div>
 
+                            <div class="md:col-span-2">
+                                <Label for="jev_api_key" class="mb-2 flex items-center gap-2">
+                                    <LockSolid class="w-4 h-4 text-gray-500" /> Jev API Kulcs – előszűrés <span class="text-xs font-normal text-gray-500">(opcionális)</span>
+                                </Label>
+                                <Input
+                                    type="text"
+                                    id="jev_api_key"
+                                    name="jev_api_key"
+                                    placeholder="Hagyd üresen, ha nem szeretnél előszűrést"
+                                    value={data.felhasznalo?.jev_api_key ?? ''}
+                                />
+                                <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                                    A TypeSafe Jev modellje előre kiszűri a bulvárt és a clickbaitet, így ezekre nem fogy az AI szolgáltatód kerete. A figyelt kulcsszavakat tartalmazó cikkeket sosem szűri ki.
+                                    Kulcsot itt kérhetsz: <a href="https://console.typesafe.ai/" target="_blank" rel="noopener noreferrer" class="font-medium text-blue-600 hover:underline dark:text-blue-400">console.typesafe.ai</a>
+                                </p>
+                            </div>
+
                             <div class="md:col-span-2 mt-2">
                                 <Label for="youtube_api_key" class="mb-2 flex items-center gap-2">
                                     <LockSolid class="w-4 h-4 text-gray-500" /> YouTube API Kulcs

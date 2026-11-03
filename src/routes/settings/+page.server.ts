@@ -66,6 +66,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 
     // BIZTONSÁG: Nem küldi ki a nyers kulcsokat a böngészőbe!
     let displayApiKey = felhasznalo?.api_key ? '•••••••••••••••••••••••••••• (Titkosítva mentve)' : '';
+    let displayJevKey = felhasznalo?.jev_api_key ? '•••••••••••••••••••••••••••• (Titkosítva mentve)' : '';
     let displayYoutubeKey = felhasznalo?.youtube_api_key ? '•••••••••••••••••••••••••••• (Titkosítva mentve)' : '';
     let displayDiscord = felhasznalo?.discord_webhook ? '•••••••••••••••••••••••••••• (Titkosítva mentve)' : '';
     let displayTelegram = felhasznalo?.telegram_chat_id ? '•••••••••••••••••••••••••••• (Titkosítva mentve)' : '';
@@ -82,6 +83,7 @@ export const load: PageServerLoad = async ({ locals }) => {
         felhasznalo: {
             ...biztonsagosAdatok,
             api_key: displayApiKey,
+            jev_api_key: displayJevKey,
             youtube_api_key: displayYoutubeKey,
             discord_webhook: displayDiscord,
             telegram_chat_id: displayTelegram
@@ -123,6 +125,7 @@ export const actions: Actions = {
         // Kulcsok kiolvasása
         let apiKey = formData.get('api_key')?.toString().trim();
         let youtubeApiKey = formData.get('youtube_api_key')?.toString().trim();
+        let jevApiKey = formData.get('jev_api_key')?.toString().trim();
         let discordWebhook = formData.get('discord_webhook')?.toString().trim();
         let telegramChatId = formData.get('telegram_chat_id')?.toString().trim();
 
@@ -136,6 +139,9 @@ export const actions: Actions = {
         // Kulcsok titkosítása mentés előtt
         if (apiKey === '') dataToUpdate.api_key = null;
         else if (apiKey && !apiKey.includes('••••')) dataToUpdate.api_key = encrypt(apiKey);
+
+        if (jevApiKey === '') dataToUpdate.jev_api_key = null;
+        else if (jevApiKey && !jevApiKey.includes('••••')) dataToUpdate.jev_api_key = encrypt(jevApiKey);
 
         if (youtubeApiKey === '') dataToUpdate.youtube_api_key = null;
         else if (youtubeApiKey && !youtubeApiKey.includes('••••')) dataToUpdate.youtube_api_key = encrypt(youtubeApiKey);
