@@ -13,6 +13,7 @@ A **News Trends** egy B2B SaaS webalkalmazás, amely cégvezetőknek és elemző
   - **Hírérték** pontszám (0–100) és **Clickbait Radar** (0–100),
   - kulcsszavak és témakör-besorolás,
   - azonos eseményről szóló cikkek klaszterezése.
+- **Opcionális AI előszűrés:** a TypeSafe Jev modellje (a felhasználó saját kulcsával) típusos pontozással kiszűri a nyilvánvalóan alacsony értékű cikkeket, így ezekre nem fogy az LLM kerete; hiba esetén a rendszer szűrés nélkül folytatja.
 - **Fontossági rangsor:** a kiemelt hírek előre, a clickbait és alacsony hírértékű tartalmak hátra kerülnek.
 - **Riasztások** e-mailben, Discordon vagy Telegramon:
   - egyedi kulcsszó találat,

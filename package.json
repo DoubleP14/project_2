@@ -38,6 +38,7 @@
 		"@prisma/adapter-pg": "^7.5.0",
 		"@prisma/client": "^6.4.0",
 		"@prisma/config": "^7.4.2",
+		"@typesafe-ai/sdk": "^0.7.0",
 		"apexcharts": "^5.15.0",
 		"bcrypt": "^6.0.0",
 		"dotenv": "^17.3.1",

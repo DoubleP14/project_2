@@ -23,7 +23,7 @@ export async function load({ locals }) {
     const tisztaFelhasznalok = felhasznalok.map((f: typeof felhasznalok[number]) => {
         // Titkok, tokenek és titkosított adatok nem kerülnek a böngészőbe (az adminéba sem)
         const {
-            password_hash, api_key, youtube_api_key, discord_webhook, telegram_chat_id,
+            password_hash, api_key, jev_api_key, youtube_api_key, discord_webhook, telegram_chat_id,
             verification_token, jelszo_reset_token, jelszo_reset_lejarat, google_id, token_verzio, utolso_fizetes_session,
             ...biztonsagosAdatok
         } = f;

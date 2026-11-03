@@ -3,6 +3,7 @@ import type { Services } from '../index';
 import { decrypt } from '../crypto';
 import { KATEGORIA_SZOTAR, illeszkedoKategoria } from '$lib/kategoriak';
 import { modellValasztas } from '$lib/aiModellek';
+import { createJevEloszuro } from '../services/jevService';
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -23,7 +24,7 @@ const MAX_EGYMAS_UTANI_HIBA = 3;
 const SZUNET_SIKER_MS = 4000;
 const SZUNET_HIBA_MS = 1000;
 
-export type ElemzesStatisztika = { sikeres: number; hibas: number; kihagyva: boolean };
+export type ElemzesStatisztika = { sikeres: number; hibas: number; kihagyva: boolean; eloszurt: number };
 
 // A szolgáltatók kulcsainak jellemző előtagja – a leggyakoribb hiba, hogy a kulcs nem a kiválasztott szolgáltatóhoz tartozik
 const KULCS_ELOTAGOK: Record<string, string[]> = {
@@ -46,7 +47,7 @@ const kulcsSzolgaltatoTipp = (provider: string, apiKey: string): string => {
 export function createAiModule(services: Services) {
     return {
         ujHirekFeldolgozasa: async (userId: number): Promise<ElemzesStatisztika> => {
-            const stat: ElemzesStatisztika = { sikeres: 0, hibas: 0, kihagyva: false };
+            const stat: ElemzesStatisztika = { sikeres: 0, hibas: 0, kihagyva: false, eloszurt: 0 };
 
             // --- 1. KULCS VISSZAFEJTÉSE (Szigorú BYOK: csak a felhasználó saját kulcsa használható) ---
             const user = await services.db.felhasznalok.findUnique({ where: { id: userId } });
@@ -95,6 +96,10 @@ export function createAiModule(services: Services) {
                 where: { felhasznalo_id: userId, is_own_source: true }
             })) > 0;
 
+            // Opcionális Jev előszűrő (a felhasználó saját kulcsával); hiba esetén az adott futásra kikapcsol
+            const jevKulcs = user.jev_api_key ? decrypt(user.jev_api_key) : '';
+            let jevEloszuro = jevKulcs ? createJevEloszuro(jevKulcs) : null;
+
             // --- 4. FELDOLGOZÁS ---
             let egymasUtaniHibak = 0;
             let utolsoHibaUzenet = '';
@@ -111,6 +116,38 @@ export function createAiModule(services: Services) {
 
                     console.log(`- Elemzés alatt: ${hir.cim}`);
                     const szoveg = (hir.tartalom || hir.cim).slice(0, MAX_SZOVEG_HOSSZ);
+
+                    // ELŐSZŰRÉS: a nyilvánvalóan alacsony értékű cikkre nem hívunk LLM-et.
+                    // Figyelt kulcsszót tartalmazó cikket sosem szűrünk ki, hogy ne maradjon el riasztás.
+                    const kereshetoSzoveg = (hir.cim + ' ' + szoveg).toLowerCase();
+                    const kulcsszavasCikk = userKulcsszavak.some((k: { kulcsszo: string }) => kereshetoSzoveg.includes(k.kulcsszo.toLowerCase()));
+                    if (jevEloszuro && !kulcsszavasCikk) {
+                        try {
+                            const jev = await jevEloszuro(hir.cim, szoveg);
+                            if (jev.szurendo) {
+                                await services.hirRepo.saveAiElemzes(
+                                    hir.id,
+                                    'Az előszűrő alacsony hírértékűnek vagy clickbaitnek ítélte, ezért nem készült AI-összefoglaló.',
+                                    'SEMLEGES',
+                                    'jev-latest (előszűrés)',
+                                    jev.hirertek,
+                                    jev.clickbait,
+                                    []
+                                );
+                                stat.eloszurt++;
+                                console.log(`  [Jev] Előszűrve (hírérték: ${jev.hirertek}, clickbait: ${jev.clickbait})`);
+                                continue;
+                            }
+                        } catch (jevHiba) {
+                            // A Jev hibája nem állítja meg az elemzést: a cikkek a szokásos módon az LLM-hez mennek
+                            const uzenet = jevHiba instanceof Error ? jevHiba.message : String(jevHiba);
+                            console.warn('[Jev] Az előszűrés hibára futott, ebben a futásban kikapcsolva:', uzenet);
+                            await services.db.rendszerNaplo.create({
+                                data: { felhasznalo_id: userId, esemeny_tipus: 'JEV_WARNING', leiras: `A Jev előszűrés hibára futott, a hírek szűrés nélkül mennek az AI elemzéshez. ${uzenet.substring(0, 200)}` }
+                            });
+                            jevEloszuro = null;
+                        }
+                    }
                     
                     // A) AI Elemzés és B) Klaszterezés (ITT ADTUK ÁT PLUSZBAN A hir.cim-et!)
                     const aiEredmeny = await services.ai.hirElemzese(hir.cim, szoveg, provider, valasztottModell, apiKey);
@@ -273,7 +310,7 @@ export function createAiModule(services: Services) {
                     await sleep(sikerult ? SZUNET_SIKER_MS : SZUNET_HIBA_MS);
                 }
             }
-            console.log(`AI elemzési ciklus befejeződött: ${stat.sikeres} sikeres, ${stat.hibas} hibás.\n`);
+            console.log(`AI elemzési ciklus befejeződött: ${stat.sikeres} sikeres, ${stat.hibas} hibás, ${stat.eloszurt} előszűrve.\n`);
             return stat;
         }
     };

@@ -49,6 +49,7 @@
     const feldolgozok = [
         { nev: 'DigitalOcean, LLC', szerep: 'Tárhelyszolgáltatás: az alkalmazás és az adatbázis szervere. Az adatok az Európai Unióban, a frankfurti (Németország) adatközpontban tárolódnak.' },
         { nev: 'Cloudflare, Inc.', szerep: 'DNS, HTTPS titkosítás és túlterheléses támadások elleni védelem. A forgalom áthalad a hálózatán, adatot tartósan nem tárol.' },
+        { nev: 'TypeSafe AI', szerep: 'Opcionális előszűrés a felhasználó saját kulcsával, ha megad ilyet: a szolgáltató a nyilvános hírcikkek címét és szövegét kapja meg, személyes adatot nem.' },
         { nev: 'Google LLC', szerep: 'Bejelentkezés Google-fiókkal (csak ha a felhasználó ezt választja): a Google átadja a fiók azonosítóját, e-mail címét és nevét. Jelszót nem kapunk meg.' },
         { nev: 'Stripe Payments Europe Ltd.', szerep: 'Bankkártyás fizetés lebonyolítása. A kártyaadatok kizárólag a Stripe rendszerébe kerülnek, mi nem látjuk és nem tároljuk őket.' },
         { nev: 'KBOSS.hu Kft. (Számlázz.hu)', szerep: 'Elektronikus számla kiállítása és kézbesítése e-mailben.' },

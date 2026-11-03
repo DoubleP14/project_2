@@ -29,7 +29,7 @@ export const jobs = {
             const users = await services.db.felhasznalok.findMany({ where: { aktiv: true } });
 
             // Összesítő statisztika a naplóhoz
-            const ossz = { sikeres: 0, hibas: 0, kulcsNelkul: 0 };
+            const ossz = { sikeres: 0, hibas: 0, eloszurt: 0, kulcsNelkul: 0 };
 
             for (const user of users) {
                 console.log(`\n[${inditoja}] Feldolgozás a(z) ${user.id}. felhasználónak...`);
@@ -37,6 +37,7 @@ export const jobs = {
                 const stat = await modules.aiElemzo.ujHirekFeldolgozasa(user.id);
                 ossz.sikeres += stat.sikeres;
                 ossz.hibas += stat.hibas;
+                ossz.eloszurt += stat.eloszurt;
                 if (stat.kihagyva) ossz.kulcsNelkul++;
             }
 
@@ -46,6 +47,7 @@ export const jobs = {
                 data: {
                     esemeny_tipus: tipus,
                     leiras: `Lefutás vége (${inditoja}): ${users.length} aktív felhasználó, ${ossz.sikeres} sikeres AI elemzés, ${ossz.hibas} hiba` +
+                        (ossz.eloszurt > 0 ? `, ${ossz.eloszurt} cikk előszűrve (LLM-hívás megspórolva)` : '') +
                         (ossz.kulcsNelkul > 0 ? `, ${ossz.kulcsNelkul} felhasználó AI kulcs nélkül (kihagyva).` : '.')
                 }
             });
