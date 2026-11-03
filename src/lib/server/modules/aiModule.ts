@@ -17,6 +17,10 @@ const MAX_SZOVEG_HOSSZ = 2500;
 // Témakör alapú riasztás csak ennél a hírértéknél (vagy felette) indul
 const TEMAKOR_RIASZTASI_KUSZOB = 71;
 
+// Bombahír feltételei: ennyi különböző forrás hozta le az eseményt, legalább ekkora hírértékkel
+const BOMBAHIR_MIN_FORRAS = 3;
+const BOMBAHIR_MIN_HIRERTEK = 60;
+
 // Ennyi egymást követő hiba után leáll az adott felhasználó elemzése (pl. hibás kulcsnál felesleges tovább próbálkozni)
 const MAX_EGYMAS_UTANI_HIBA = 3;
 
@@ -189,8 +193,10 @@ export function createAiModule(services: Services) {
                     let ertesitesCimPrefix = "";
 
                     const klaszterCikkek = frissKeszHirek.filter((h: any) => h.cluster_id === clusterId);
-                    if (klaszterCikkek.length >= 3) {
-                        riasztasOka = "Bombahír (Több forrás lehozta)";
+                    // Bombahír: ugyanazt az eseményt legalább 3 KÜLÖNBÖZŐ forrás hozta le, és a hír jelentős is
+                    const kulonbozoForrasok = new Set(klaszterCikkek.map((h: any) => h.forras_id)).size;
+                    if (kulonbozoForrasok >= BOMBAHIR_MIN_FORRAS && aiEredmeny.pontszam >= BOMBAHIR_MIN_HIRERTEK) {
+                        riasztasOka = `Bombahír (${kulonbozoForrasok} forrás lehozta)`;
                         ertesitesCimPrefix = "🔥 BOMBAHÍR:";
                     }
 

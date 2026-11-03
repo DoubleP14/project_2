@@ -18,7 +18,7 @@ A **News Trends** egy B2B SaaS webalkalmazás, amely cégvezetőknek és elemző
 - **Riasztások** e-mailben, Discordon vagy Telegramon:
   - egyedi kulcsszó találat,
   - feliratkozott témakör (csak kiemelt, 71+ hírértékű hírnél),
-  - bombahír (legalább 3 forrás hozta le),
+  - bombahír (legalább 3 különböző forrás hozta le, és legalább 60-as a hírértéke),
   - gap analízis (a konkurencia megírta, a saját médium nem).
 - **Statisztika:** hangulat- és hírérték-megoszlás, forrásonkénti állapot.
 - **Forrásfigyelés:** a felhasználó látja forrásai állapotát (működik / hiba / kikapcsolva); 24 egymás utáni hiba után a rendszer automatikusan kikapcsolja a forrást és e-mailben értesít.
