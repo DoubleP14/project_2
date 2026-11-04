@@ -4,7 +4,7 @@
         nev: 'Pintér Patrik',
         email: 'pinter.patrik04@gmail.com'
     };
-    const HATALYOS = '2026. október 14.';
+    const HATALYOS = '2026. november 4.';
 
     const tartalom = [
         { id: 'adatkezelo', cim: '1. Az adatkezelő' },
@@ -15,7 +15,8 @@
         { id: 'biztonsag', cim: '6. Adatbiztonság' },
         { id: 'sutik', cim: '7. Sütik (cookie-k)' },
         { id: 'jogok', cim: '8. Az Ön jogai' },
-        { id: 'jogorvoslat', cim: '9. Jogorvoslat' }
+        { id: 'jogorvoslat', cim: '9. Jogorvoslat' },
+        { id: 'felelosseg', cim: '10. A szolgáltatás jellege és a felelősség' }
     ];
 
     const adatkezelesek = [
@@ -79,7 +80,7 @@
             Hatályos: {HATALYOS}. Ez a tájékoztató bemutatja, milyen személyes adatokat kezel a News Trends, milyen célból, és milyen jogok illetik meg Önt az Európai Unió általános adatvédelmi rendelete (GDPR) alapján.
         </p>
         <div class="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-900/20 dark:text-amber-300">
-            A News Trends szakdolgozati, demonstrációs célú projekt. A fizetés Stripe teszt módban, a számlázás Számlázz.hu sandbox környezetben működik.
+            A News Trends szakdolgozati, demonstrációs célú projekt. A fizetés Stripe teszt módban, a számlázás Számlázz.hu sandbox környezetben működik, valódi pénz nem mozog. Részletek a <a href="#felelosseg" class="font-medium underline">10. pontban</a>.
         </div>
     </header>
 
@@ -122,7 +123,7 @@
                         </tbody>
                     </table>
                 </div>
-                <p class="mt-3 text-sm">Nem kezelünk különleges kategóriájú személyes adatot, IP-címet nem tárolunk, és a felhasználókról nem végzünk profilalkotást vagy automatizált döntéshozatalt.</p>
+                <p class="mt-3 text-sm">Nem kezelünk különleges kategóriájú személyes adatot, IP-címet tartósan nem tárolunk (a visszaélések elleni korlát ideiglenesen, a memóriában használja), és a felhasználókról nem végzünk profilalkotást vagy automatizált döntéshozatalt.</p>
             </section>
 
             <section>
@@ -160,7 +161,7 @@
                 <ul class="mt-3 list-disc space-y-2 pl-5">
                     <li>A jelszavakat kizárólag egyirányú, sózott <strong>bcrypt</strong> hash formában tároljuk.</li>
                     <li>Az API kulcsokat és értesítési azonosítókat <strong>AES-256</strong> titkosítással tároljuk, a felületen sosem jelennek meg nyíltan.</li>
-                    <li>A munkamenetet <strong>HttpOnly, SameSite=Strict</strong> sütiben tárolt, aláírt JWT token azonosítja; jelszócsere után vagy kérésre minden munkamenet azonnal érvénytelenné válik.</li>
+                    <li>A munkamenetet <strong>HttpOnly, SameSite=Lax</strong> sütiben tárolt, aláírt JWT token azonosítja; jelszócsere után vagy kérésre minden munkamenet azonnal érvénytelenné válik.</li>
                     <li>Minden felhasználó kizárólag a saját adataihoz fér hozzá; a rendszerszintű műveletek adminisztrátori jogosultsághoz kötöttek.</li>
                 </ul>
             </section>
@@ -190,6 +191,14 @@
                 <p class="mt-3">
                     Ha úgy érzi, hogy személyes adatai kezelése sérti a jogszabályokat, panaszt tehet a <strong>Nemzeti Adatvédelmi és Információszabadság Hatóságnál</strong> (NAIH, 1055 Budapest, Falk Miksa utca 9–11., <a href="https://naih.hu" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline dark:text-blue-400">naih.hu</a>), vagy bírósághoz fordulhat.
                 </p>
+            </section>
+
+            <section>
+                <h2 id="felelosseg">10. A szolgáltatás jellege és a felelősség</h2>
+                <p class="mt-3">
+                    A szolgáltatás szakdolgozati, demonstrációs céllal működik, ezért hibákat tartalmazhat, és a folyamatos rendelkezésre állása nem garantált. Az AI által készített összefoglalók és pontszámok pontatlanok lehetnek, ezért üzleti vagy pénzügyi döntés alapjául önmagukban nem szolgálnak. A használat a felhasználó saját felelősségére történik. A saját AI-kulcsok használatából eredő költségek a kulcs tulajdonosát terhelik.
+                </p>
+                <p class="mt-3">Ez a pont nem érinti a jelen tájékoztatóban leírt adatvédelmi jogokat és az adatkezelő ezekhez kapcsolódó kötelezettségeit.</p>
             </section>
         </article>
     </div>

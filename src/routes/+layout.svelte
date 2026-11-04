@@ -115,7 +115,7 @@
 
 <!-- LÁBLÉC -->
 <footer class="border-t border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
-    <div class="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-4 py-6 text-sm text-gray-500 dark:text-gray-400 sm:flex-row sm:px-6 lg:px-8">
+    <div class="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-4 pt-6 text-sm text-gray-500 dark:text-gray-400 sm:flex-row sm:px-6 lg:px-8">
         <p>© {new Date().getFullYear()} News Trends · Hírtrend-elemző és Értesítő Rendszer</p>
         <div class="flex items-center gap-5">
             {#if !$page.data.user}
@@ -124,4 +124,8 @@
             <a href="/adatvedelem" class="hover:text-gray-900 dark:hover:text-white">Adatkezelési tájékoztató</a>
         </div>
     </div>
+    <p class="mx-auto max-w-7xl px-4 pb-6 pt-3 text-center text-xs text-gray-500 dark:text-gray-400 sm:px-6 sm:text-left lg:px-8">
+        Szakdolgozati, demonstrációs célú projekt. A fizetés teszt módban működik, valódi pénz nem mozog.
+        <a href="/adatvedelem#felelosseg" class="underline hover:text-gray-900 dark:hover:text-white">Részletek</a>
+    </p>
 </footer>
