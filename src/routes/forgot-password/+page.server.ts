@@ -3,6 +3,7 @@ import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { services } from '$lib/server';
 import { jelszoResetLinkKuldese } from '$lib/server/jelszoReset';
+import { korlatTullepve, probaRogzitese, ugyfelIp } from '$lib/server/rateLimit';
 
 export const load: PageServerLoad = async ({ locals }) => {
     if (locals.user) throw redirect(302, '/dashboard');
@@ -10,7 +11,14 @@ export const load: PageServerLoad = async ({ locals }) => {
 };
 
 export const actions: Actions = {
-    default: async ({ request, url }) => {
+    default: async ({ request, url, getClientAddress }) => {
+        // Levélküldéssel való visszaélés ellen: IP-címenként óránként legfeljebb 10 kérés
+        const ipKulcs = `forgot:ip:${ugyfelIp({ request, getClientAddress })}`;
+        if (korlatTullepve(ipKulcs, 10)) {
+            return fail(429, { message: 'Túl sok kérés. Kérlek, próbáld újra később.' });
+        }
+        probaRogzitese(ipKulcs, 60 * 60 * 1000);
+
         const formData = await request.formData();
         const email = formData.get('email')?.toString().trim().toLowerCase();
 

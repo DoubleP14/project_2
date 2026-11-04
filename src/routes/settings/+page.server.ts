@@ -8,6 +8,7 @@ import { KATEGORIA_SZOTAR } from '$lib/kategoriak';
 import { AI_SZOLGALTATOK, ervenyesModellNev } from '$lib/aiModellek';
 import { jelszoResetLinkKuldese } from '$lib/server/jelszoReset';
 import { csatornaLetoltese, rssFelderites } from '$lib/server/rssLetolto';
+import { httpUrlE, discordWebhookE } from '$lib/biztonsagosUrl';
 
 // RSS forrás ellenőrzése mentés előtt: a megadott RSS link olvasható-e, vagy ha nincs megadva,
 // automatikusan megkeressük a weboldal címéből. Így a felhasználó azonnal visszajelzést kap.
@@ -147,7 +148,12 @@ export const actions: Actions = {
         else if (youtubeApiKey && !youtubeApiKey.includes('••••')) dataToUpdate.youtube_api_key = encrypt(youtubeApiKey);
 
         if (discordWebhook === '') dataToUpdate.discord_webhook = null;
-        else if (discordWebhook && !discordWebhook.includes('••••')) dataToUpdate.discord_webhook = encrypt(discordWebhook);
+        else if (discordWebhook && !discordWebhook.includes('••••')) {
+            if (!discordWebhookE(discordWebhook)) {
+                return fail(400, { message: 'Érvénytelen Discord webhook! A címnek így kell kezdődnie: https://discord.com/api/webhooks/' });
+            }
+            dataToUpdate.discord_webhook = encrypt(discordWebhook);
+        }
 
         if (telegramChatId === '') dataToUpdate.telegram_chat_id = null;
         else if (telegramChatId && !telegramChatId.includes('••••')) dataToUpdate.telegram_chat_id = encrypt(telegramChatId);
@@ -220,6 +226,9 @@ export const actions: Actions = {
 
         if (!forras_nev || !forras_url) {
             return fail(400, { message: 'A név és az URL megadása kötelező!' });
+        }
+        if (!httpUrlE(forras_url) || (rss_url && !httpUrlE(rss_url))) {
+            return fail(400, { message: 'Csak http:// vagy https:// kezdetű cím adható meg.' });
         }
 
         // CSOMAGKORLÁT: Starter csomagban csak RSS és max 3 aktív forrás
@@ -342,6 +351,9 @@ export const actions: Actions = {
         const is_own_source = formData.get('is_own_source') === 'true';
 
         if (!forras_nev || !forras_url) return fail(400, { message: 'A név és az URL megadása kötelező!' });
+        if (!httpUrlE(forras_url) || (rss_url && !httpUrlE(rss_url))) {
+            return fail(400, { message: 'Csak http:// vagy https:// kezdetű cím adható meg.' });
+        }
 
         try {
             const forras = await prisma.hirForrasok.findUnique({ where: { id: id } });
@@ -389,8 +401,9 @@ export const actions: Actions = {
             const cim = sajatForras ? `[${sajatForras.forras_nev}] Rendszer Teszt` : "🛠️ Rendszer Teszt Riasztás";
             const url = sajatForras ? sajatForras.forras_url : "https://444.hu";
 
-            const utolsoHir = await prisma.hirek.findFirst();
-            const tesztHirId = utolsoHir ? utolsoHir.id : 1;
+            // Csak a felhasználó SAJÁT híréhez köthető a teszt (különben idegen hír címe kerülne a naplójába)
+            const utolsoHir = await prisma.hirek.findFirst({ where: { felhasznalo_id: user.id }, orderBy: { id: 'desc' } });
+            const tesztHirId = utolsoHir ? utolsoHir.id : null;
 
             try {
                 const sikeres = await services.notify.ertesitesKuldese(user.id, tesztHirId, {
