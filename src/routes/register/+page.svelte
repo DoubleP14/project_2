@@ -65,7 +65,11 @@
         <h1 class="text-2xl font-bold leading-tight tracking-tight text-gray-900 dark:text-white">
             Fiók létrehozása
         </h1>
-        <p class="mt-1 mb-6 text-sm text-gray-500 dark:text-gray-400">Ingyenes Starter csomag, bankkártya nélkül.</p>
+        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Ingyenes Starter csomag, bankkártya nélkül.</p>
+        <div class="mt-4 mb-6 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-800 dark:border-amber-900 dark:bg-amber-900/20 dark:text-amber-300">
+            Szakdolgozati, demonstrációs célú projekt: hibákat tartalmazhat, és a használata saját felelősségre történik. A fizetés teszt módban működik, valódi pénz nem mozog.
+            <a href="/adatvedelem#felelosseg" target="_blank" class="font-medium underline">Részletek</a>
+        </div>
 
         {#if hibaUzenet}
             <Alert color="red" class="mb-4">{hibaUzenet}</Alert>
