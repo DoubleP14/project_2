@@ -3,12 +3,20 @@ import { json } from '@sveltejs/kit';
 import crypto from 'crypto';
 import { services } from '$lib/server';
 import { emailService } from '$lib/server/services/emailService';
+import { korlatTullepve, probaRogzitese, ugyfelIp } from '$lib/server/rateLimit';
 
 // Spam védelem: e-mail címenként legfeljebb 2 percenként küldünk új levelet
 const UJRAKULDES_VARAKOZAS_MS = 2 * 60 * 1000;
 const utolsoKuldesek = new Map<string, number>();
 
-export const POST = async ({ request, url }) => {
+export const POST = async ({ request, url, getClientAddress }) => {
+    // Levélküldéssel való visszaélés ellen: IP-címenként óránként legfeljebb 10 kérés
+    const ipKulcs = `resend:ip:${ugyfelIp({ request, getClientAddress })}`;
+    if (korlatTullepve(ipKulcs, 10)) {
+        return json({ error: 'Túl sok kérés. Kérlek, próbáld újra később.' }, { status: 429 });
+    }
+    probaRogzitese(ipKulcs, 60 * 60 * 1000);
+
     const { email } = await request.json().catch(() => ({ email: null }));
     if (!email || typeof email !== 'string') {
         return json({ error: 'Add meg az e-mail címedet!' }, { status: 400 });
@@ -25,7 +33,7 @@ export const POST = async ({ request, url }) => {
     // Mindig ugyanazt válaszoljuk, hogy ne lehessen kideríteni, mely e-mail címek regisztráltak
     const valasz = json({ message: 'Ha ehhez az e-mail címhez tartozik megerősítésre váró fiók, újraküldtük a megerősítő levelet.' });
 
-    const user = await services.db.felhasznalok.findUnique({ where: { email: email.trim() } });
+    const user = await services.db.felhasznalok.findFirst({ where: { email: { equals: email.trim(), mode: 'insensitive' } } });
     if (!user || user.email_verified) return valasz;
 
     // Új token: a korábbi link ezzel érvénytelenné válik

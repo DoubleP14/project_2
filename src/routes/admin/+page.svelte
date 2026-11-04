@@ -4,6 +4,7 @@
     import { Card, Table, TableBody, TableBodyCell, TableBodyRow, TableHead, TableHeadCell, Badge, Toggle, Search, Indicator, Button, Spinner } from 'flowbite-svelte';
     import { UsersSolid, ShieldCheckSolid, GlobeSolid, NewspaperSolid, BrainSolid, CogSolid, RefreshOutline, TrashBinOutline } from 'flowbite-svelte-icons';
     import { formatDate } from '$lib/utils/format-date';
+    import { biztonsagosHref } from '$lib/biztonsagosUrl';
     
     export let data;
     export let form;
@@ -164,8 +165,8 @@
                                     <div>
                                         <div class="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
                                             {user.username}
-                                            {#if user.role === 'admin'}<Badge color="purple" size="xs">Admin</Badge>{/if}
-                                            {#if user.googleOsszekapcsolva}<Badge color="blue" size="xs">Google</Badge>{/if}
+                                            {#if user.role === 'admin'}<Badge color="purple">Admin</Badge>{/if}
+                                            {#if user.googleOsszekapcsolva}<Badge color="blue">Google</Badge>{/if}
                                         </div>
                                         <p class="text-sm text-gray-500">{user.email}</p>
                                     </div>
@@ -216,7 +217,7 @@
                         </TableBodyRow>
                     {:else}
                         <TableBodyRow>
-                            <TableBodyCell colspan="5" class="text-center py-8 text-gray-500">
+                            <TableBodyCell colspan={5} class="text-center py-8 text-gray-500">
                                 Nincs a keresésnek megfelelő felhasználó.
                             </TableBodyCell>
                         </TableBodyRow>
@@ -247,7 +248,7 @@
                                 <TableBodyRow class="hover:bg-red-50/50 dark:hover:bg-red-900/10">
                                     <TableBodyCell>
                                         <p class="font-bold text-gray-900 dark:text-white">{forras.forras_nev || 'Ismeretlen Név'}</p>
-                                        <a href={forras.rss_url || forras.forras_url} target="_blank" class="text-xs text-blue-500 hover:underline break-all">
+                                        <a href={biztonsagosHref(forras.rss_url || forras.forras_url)} target="_blank" rel="noopener noreferrer" class="text-xs text-blue-500 hover:underline break-all">
                                             {forras.rss_url || forras.forras_url}
                                         </a>
                                     </TableBodyCell>

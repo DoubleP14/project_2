@@ -4,6 +4,7 @@ import type { Services } from '../index';
 import { rawConfig } from '../index';
 import { decrypt } from '../crypto';
 import { emailService } from '../services/emailService';
+import { httpUrlE } from '$lib/biztonsagosUrl';
 
 // Ennyi egymás utáni sikertelen frissítés után (óránkénti futásnál kb. 1 nap) a forrás automatikusan kikapcsol
 const AUTO_KIKAPCSOLASI_KUSZOB = 24;
@@ -20,8 +21,11 @@ export function createHirGyujtoModule(services: Services) {
         const feed = await csatornaLetoltese(forras.rss_url);
         let feldolgozottCikkek = 0;
 
-        for (const item of feed.items) {
+        // Egy csatornából legfeljebb 100 cikket dolgozunk fel (túlméretes csatorna ellen)
+        for (const item of feed.items.slice(0, 100)) {
             const nyersUrl = item.link || '';
+            // A cikklink külső adat: csak http(s) mehet a rendszerbe, "javascript:" és társai nem (XSS)
+            if (!httpUrlE(nyersUrl)) continue;
             const tisztaUrl = nyersUrl.split('?')[0];
 
             const cikkSzovege = (item.title + " " + (item.contentSnippet || "")).toLowerCase();
@@ -54,10 +58,10 @@ export function createHirGyujtoModule(services: Services) {
         
         if (forras.forras_url.includes('@')) {
             const handle = forras.forras_url.split('@')[1].split('?')[0].split('/')[0];
-            urlForChannelApi = `https://www.googleapis.com/youtube/v3/channels?part=contentDetails&forHandle=@${handle}&key=${YOUTUBE_API_KEY}`;
+            urlForChannelApi = `https://www.googleapis.com/youtube/v3/channels?part=contentDetails&forHandle=@${encodeURIComponent(handle)}&key=${YOUTUBE_API_KEY}`;
         } else if (forras.forras_url.includes('/channel/')) {
             const channelId = forras.forras_url.split('/channel/')[1].split('?')[0].split('/')[0];
-            urlForChannelApi = `https://www.googleapis.com/youtube/v3/channels?part=contentDetails&id=${channelId}&key=${YOUTUBE_API_KEY}`;
+            urlForChannelApi = `https://www.googleapis.com/youtube/v3/channels?part=contentDetails&id=${encodeURIComponent(channelId)}&key=${YOUTUBE_API_KEY}`;
         } else {
             throw new Error(`A linknek '@' jelet vagy '/channel/' részt kell tartalmaznia.`);
         }

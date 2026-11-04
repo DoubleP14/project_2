@@ -48,7 +48,7 @@
                 <span class="block text-xs text-gray-500 truncate dark:text-gray-400">
                     {$page.data.user?.email || 'Fiók részletei'}
                 </span>
-                <Badge color="purple" size="xs" class="mt-2 w-fit">
+                <Badge color="purple" class="mt-2 w-fit">
                     {$page.data.user?.subscription_tier === 'pro' ? 'Pro Analyst' : ($page.data.user?.subscription_tier === 'enterprise' ? 'Enterprise' : 'Starter')}
                 </Badge>
             </DropdownHeader>

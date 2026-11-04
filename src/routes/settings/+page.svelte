@@ -6,6 +6,7 @@
     import { formatDate } from '$lib/utils/format-date';
     import { ALAPERTELMEZETT_MODELLEK } from '$lib/aiModellek';
     import { hatralevoNapok } from '$lib/csomagok';
+    import { biztonsagosHref } from '$lib/biztonsagosUrl';
 
     export let data;
     export let form;
@@ -104,7 +105,7 @@
         <h1 class="text-3xl font-extrabold text-gray-900 dark:text-white flex items-center gap-3">
             Vezérlőpult & Beállítások
         </h1>
-        <Badge color={data.felhasznalo?.subscription_tier === 'pro' ? 'purple' : data.felhasznalo?.subscription_tier === 'enterprise' ? 'indigo' : 'dark'} size="xl" class="px-4 py-2 text-sm font-bold uppercase tracking-wide">
+        <Badge color={data.felhasznalo?.subscription_tier === 'pro' ? 'purple' : data.felhasznalo?.subscription_tier === 'enterprise' ? 'indigo' : 'dark'} large class="px-4 py-2 text-sm font-bold uppercase tracking-wide">
             Csomag: {data.felhasznalo?.subscription_tier || 'starter'}
         </Badge>
     </div>
@@ -332,25 +333,25 @@
                                     <div class="overflow-hidden flex-1">
                                         <div class="flex flex-wrap items-center gap-2 mb-1.5">
                                             <p class="font-bold text-gray-900 dark:text-white text-lg truncate">{forras.forras_nev}</p>
-                                            {#if forras.tipus === 'YOUTUBE'}<Badge color="red" size="sm">YouTube</Badge>
-                                            {:else}<Badge color="dark" size="sm">RSS</Badge>{/if}
-                                            {#if forras.is_own_source}<Badge color="green" size="sm">Saját</Badge>{/if}
+                                            {#if forras.tipus === 'YOUTUBE'}<Badge color="red">YouTube</Badge>
+                                            {:else}<Badge color="dark">RSS</Badge>{/if}
+                                            {#if forras.is_own_source}<Badge color="green">Saját</Badge>{/if}
                                             <!-- FORRÁS ÁLLAPOTA -->
                                             {#if forras.kikapcsolas_oka === 'ADMIN'}
-                                                <Badge color="red" size="sm">Adminisztrátor kikapcsolta</Badge>
+                                                <Badge color="red">Adminisztrátor kikapcsolta</Badge>
                                             {:else if forras.kikapcsolas_oka === 'AUTO'}
-                                                <Badge color="yellow" size="sm">Tartós hiba miatt kikapcsolva</Badge>
+                                                <Badge color="yellow">Tartós hiba miatt kikapcsolva</Badge>
                                             {:else if !forras.aktiv}
-                                                <Badge color="purple" size="sm">Inaktív</Badge>
+                                                <Badge color="purple">Inaktív</Badge>
                                             {:else if forras.hiba_szamlalo > 0}
-                                                <Badge color="red" size="sm">Hiba ({forras.hiba_szamlalo}×)</Badge>
+                                                <Badge color="red">Hiba ({forras.hiba_szamlalo}×)</Badge>
                                             {:else if forras.utolso_frissites}
-                                                <Badge color="green" size="sm">Működik</Badge>
+                                                <Badge color="green">Működik</Badge>
                                             {:else}
-                                                <Badge color="dark" size="sm">Első frissítésre vár</Badge>
+                                                <Badge color="dark">Első frissítésre vár</Badge>
                                             {/if}
                                         </div>
-                                        <a href={forras.forras_url} target="_blank" class="text-sm text-blue-600 dark:text-blue-400 hover:underline truncate block w-fit">
+                                        <a href={biztonsagosHref(forras.forras_url)} target="_blank" rel="noopener noreferrer" class="text-sm text-blue-600 dark:text-blue-400 hover:underline truncate block w-fit">
                                             {forras.forras_url}
                                         </a>
                                         {#if forras.utolso_frissites}
@@ -385,7 +386,7 @@
                                     <div class="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700/50">
                                         <div class="flex flex-wrap gap-1.5">
                                             {#each forras.szuro_kifejezesek.split(',') as filter}
-                                                <Badge color="indigo" size="xs" outline>{filter.trim()}</Badge>
+                                                <Badge color="indigo">{filter.trim()}</Badge>
                                             {/each}
                                         </div>
                                     </div>
@@ -466,7 +467,7 @@
                             </TableBodyRow>
                         {:else}
                             <TableBodyRow>
-                                <TableBodyCell colspan="4" class="text-center py-8 text-gray-400 italic">Nincsenek még kiküldött értesítések.</TableBodyCell>
+                                <TableBodyCell colspan={4} class="text-center py-8 text-gray-400 italic">Nincsenek még kiküldött értesítések.</TableBodyCell>
                             </TableBodyRow>
                         {/each}
                     </TableBody>

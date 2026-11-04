@@ -1,16 +1,26 @@
 import { json } from '@sveltejs/kit';
 import bcrypt from 'bcrypt';
+import { korlatTullepve, probaRogzitese, ugyfelIp } from '$lib/server/rateLimit';
 import { services } from '$lib/server'; // Database connection
 import crypto from 'crypto'; // Titkos aktiváló kód generálása
 import { emailService } from '$lib/server/services/emailService'; // Email küldő szolgáltatás
 
-export const POST = async ({ request, url }) => {
+export const POST = async ({ request, url, getClientAddress }) => {
     try {
+        // Tömeges regisztráció ellen: IP-címenként óránként legfeljebb 10 próbálkozás
+        const ipKulcs = `register:ip:${ugyfelIp({ request, getClientAddress })}`;
+        if (korlatTullepve(ipKulcs, 10)) {
+            return json({ error: 'Túl sok regisztrációs próbálkozás. Kérlek, próbáld újra később.' }, { status: 429 });
+        }
+        probaRogzitese(ipKulcs, 60 * 60 * 1000);
+
         // 1. Kicsomagolja a Frontendről érkező adatokat
-        const { username, email, password } = await request.json();
+        const { username, password, email: nyersEmail } = await request.json();
+        // Kisbetűsítve tároljuk, így ugyanaz a cím más írásmóddal nem hozhat létre második fiókot
+        const email = typeof nyersEmail === 'string' ? nyersEmail.trim().toLowerCase() : '';
 
         // 2. Alapvető ellenőrzés
-        if (!username || !email || !password) {
+        if (typeof username !== 'string' || !username || !email || !password) {
             return json({ error: 'Minden mezőt kötelező kitölteni!' }, { status: 400 });
         }
 
@@ -28,7 +38,7 @@ export const POST = async ({ request, url }) => {
         const letezoUser = await prisma.felhasznalok.findFirst({
             where: {
                 OR: [
-                    { email: email },
+                    { email: { equals: email, mode: 'insensitive' } },
                     { username: username }
                 ]
             }

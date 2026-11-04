@@ -3,6 +3,7 @@ import type { PrismaClient } from "@prisma/client";
 import { levelKuldese, levelkuldesBeallitva } from "./mailer";
 // ÚJ: Behozzuk a decrypt függvényt a visszafejtéshez
 import { decrypt } from "../crypto";
+import { discordWebhookE, biztonsagosHref } from "$lib/biztonsagosUrl";
 
 export function createNotificationService(prisma: PrismaClient) {
     
@@ -43,7 +44,7 @@ export function createNotificationService(prisma: PrismaClient) {
             content: "🔔 **Új, releváns tartalom detektálva!**",
             embeds: [{
                 title: hirAdatok.cim,
-                description: `**Hírérték:** ${ts.emoji} **${hirAdatok.pontszam || 0}/100** - *${ts.label}*\n\n**Összefoglaló:**\n${hirAdatok.osszefoglalo || "Nincs elérhető összefoglaló."}`,                url: hirAdatok.url || "http://localhost:5173",
+                description: `**Hírérték:** ${ts.emoji} **${hirAdatok.pontszam || 0}/100** - *${ts.label}*\n\n**Összefoglaló:**\n${hirAdatok.osszefoglalo || "Nincs elérhető összefoglaló."}`,                url: biztonsagosHref(hirAdatok.url) === '#' ? "https://newstrends.hu" : hirAdatok.url,
                 color: szin,
                 footer: {
                     text: `AI Hangulat: ${hirAdatok.hangulat || 'Ismeretlen'} | News Trends`
@@ -52,7 +53,11 @@ export function createNotificationService(prisma: PrismaClient) {
             }]
         };
 
+        // Csak a Discord saját címére küldünk (régebben mentett, vagy módosított értékre sem hívunk ki máshová)
+        if (!discordWebhookE(webhookUrl)) throw new Error('Érvénytelen Discord webhook cím.');
+
         const response = await fetch(webhookUrl, {
+            redirect: 'error',
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
@@ -69,7 +74,7 @@ export function createNotificationService(prisma: PrismaClient) {
         const ts = getHirertekKinezet(hirAdatok.pontszam);
         const cim = escapeHtml(hirAdatok.cim);
         const osszefoglalo = escapeHtml(hirAdatok.osszefoglalo || "Nincs elérhető összefoglaló.");
-        const url = escapeHtml(hirAdatok.url || 'http://localhost:5173');
+        const url = escapeHtml(biztonsagosHref(hirAdatok.url) === '#' ? 'https://newstrends.hu' : hirAdatok.url);
 
         const htmlContent = `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333; line-height: 1.6;">
@@ -120,7 +125,7 @@ export function createNotificationService(prisma: PrismaClient) {
         const ts = getHirertekKinezet(hirAdatok.pontszam);
 
         // HTML mód + escape: a Markdown mód a címekben lévő _ * [ karaktereken elhasalna (400-as hiba)
-        const text = `🔔 <b>Új releváns tartalom!</b>\n\n<b>${escapeHtml(hirAdatok.cim)}</b>\n\n<b>Hírérték:</b> ${ts.emoji} <b>${hirAdatok.pontszam || 0}/100</b>\n<i>${ts.label}</i>\n\n<b>AI Összefoglaló:</b>\n${escapeHtml(hirAdatok.osszefoglalo || "Nincs összefoglaló.")}\n\n<b>AI Hangulat:</b> ${hangulatEmoji} ${escapeHtml(hirAdatok.hangulat || "SEMLEGES")}\n\n🔗 <a href="${escapeHtml(hirAdatok.url || 'http://localhost:5173')}">Cikk megnyitása</a>`;
+        const text = `🔔 <b>Új releváns tartalom!</b>\n\n<b>${escapeHtml(hirAdatok.cim)}</b>\n\n<b>Hírérték:</b> ${ts.emoji} <b>${hirAdatok.pontszam || 0}/100</b>\n<i>${ts.label}</i>\n\n<b>AI Összefoglaló:</b>\n${escapeHtml(hirAdatok.osszefoglalo || "Nincs összefoglaló.")}\n\n<b>AI Hangulat:</b> ${hangulatEmoji} ${escapeHtml(hirAdatok.hangulat || "SEMLEGES")}\n\n🔗 <a href="${escapeHtml(biztonsagosHref(hirAdatok.url) === '#' ? 'https://newstrends.hu' : hirAdatok.url)}">Cikk megnyitása</a>`;
 
         const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
             method: 'POST',
@@ -140,7 +145,7 @@ export function createNotificationService(prisma: PrismaClient) {
 
     // --- 4. A fő funkció, amit a rendszer meghív ---
     return {
-        ertesitesKuldese: async (felhasznaloId: number, hirId: number, hirAdatok: any) => {
+        ertesitesKuldese: async (felhasznaloId: number, hirId: number | null, hirAdatok: any) => {
             const user = await prisma.felhasznalok.findUnique({
                 where: { id: felhasznaloId },
                 select: { preferalt_csatorna: true, discord_webhook: true, email: true, telegram_chat_id: true }

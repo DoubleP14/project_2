@@ -1,7 +1,8 @@
 <script lang="ts">
     import { Card, Badge, Button, Input } from 'flowbite-svelte';
     import { SearchSolid, CogSolid, RefreshOutline } from 'flowbite-svelte-icons';
-    import { formatDate } from '$lib/utils/format-date'; 
+    import { formatDate } from '$lib/utils/format-date';
+    import { biztonsagosHref } from '$lib/biztonsagosUrl'; 
 
     export let data;
     
@@ -216,7 +217,7 @@
                         </p>
                     </div>
 
-                    <Button href={elemzes.hir.url ?? '#'} target="_blank" color="{isHianyozo ? 'red' : 'alternative'}" class="w-full mt-4 font-bold">
+                    <Button href={biztonsagosHref(elemzes.hir.url)} target="_blank" rel="noopener noreferrer" color="{isHianyozo ? 'red' : 'alternative'}" class="w-full mt-4 font-bold">
                         Eredeti cikk elolvasása
                     </Button>
                     

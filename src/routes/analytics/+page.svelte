@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { biztonsagosHref } from '$lib/biztonsagosUrl';
     import { Card, Badge, Button, Chart } from 'flowbite-svelte';
     import { ChartPieSolid, NewspaperSolid, FireSolid, ExclamationCircleSolid, RocketSolid, CogSolid } from 'flowbite-svelte-icons';
     import { onMount, onDestroy } from 'svelte';
@@ -272,12 +273,12 @@
                                 <div class="flex items-center gap-2">
                                     <p class="font-bold text-gray-900 dark:text-white">{forras.forras_nev || 'Ismeretlen forrás'}</p>
                                     {#if forras.hiba_szamlalo && forras.hiba_szamlalo > 0}
-                                        <Badge color="yellow" size="xs" class="flex items-center gap-1" title={forras.utolso_hiba || 'Hiba történt a letöltéskor'}>
+                                        <Badge color="yellow" class="flex items-center gap-1" title={forras.utolso_hiba || 'Hiba történt a letöltéskor'}>
                                             <ExclamationCircleSolid class="w-3 h-3" /> Hiba!
                                         </Badge>
                                     {/if}
                                 </div>
-                                <a href={forras.forras_url} target="_blank" class="text-xs text-blue-500 hover:underline break-all">{forras.forras_url}</a>
+                                <a href={biztonsagosHref(forras.forras_url)} target="_blank" rel="noopener noreferrer" class="text-xs text-blue-500 hover:underline break-all">{forras.forras_url}</a>
                             </div>
                             <span class="whitespace-nowrap bg-blue-100 text-blue-800 text-sm font-medium px-2.5 py-0.5 rounded dark:bg-blue-900 dark:text-blue-300 ml-3">
                                 Begyűjtve: {forras._count.hirek}

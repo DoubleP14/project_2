@@ -53,10 +53,18 @@ export const GET = async ({ url, cookies }) => {
             });
 
             if (emailesFiok) {
-                // A Google igazolta az e-mail cím birtoklását, így a meglévő fiók biztonságosan összekapcsolható
+                // A Google igazolta az e-mail cím birtoklását, így a meglévő fiók összekapcsolható.
+                // FONTOS: ha a fiók még NEM volt megerősítve, a jelszavát bárki megadhatta (akár egy támadó is,
+                // aki előre regisztrált ezzel a címmel). Ezért ilyenkor a jelszót töröljük, hogy csak a cím
+                // valódi tulajdonosa férjen hozzá. Jelszót később az "Elfelejtett jelszó"-val állíthat be.
                 user = await prisma.felhasznalok.update({
                     where: { id: emailesFiok.id },
-                    data: { google_id: profil.sub, email_verified: true, verification_token: null }
+                    data: {
+                        google_id: profil.sub,
+                        email_verified: true,
+                        verification_token: null,
+                        ...(emailesFiok.email_verified ? {} : { password_hash: null, token_verzio: { increment: 1 } })
+                    }
                 });
                 await logger.info('GOOGLE_LINK', 'Google fiók összekapcsolva a meglévő fiókkal', user.id);
             } else {
