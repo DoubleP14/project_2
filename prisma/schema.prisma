@@ -38,6 +38,8 @@ model Felhasznalok {
   // ─── E-MAIL MEGERŐSÍTÉSE ───
   email_verified     Boolean  @default(false) 
   verification_token String?  @unique
+  // A megerősítő link lejárata
+  verification_lejarat DateTime?
 
   // ─── GOOGLE BEJELENTKEZÉS ───
   // A Google fiók állandó azonosítója ("sub"); jelszó nélküli (csak Google-ös) fióknál a password_hash üres

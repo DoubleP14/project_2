@@ -4,6 +4,7 @@ import { korlatTullepve, probaRogzitese, ugyfelIp } from '$lib/server/rateLimit'
 import { services } from '$lib/server'; // Database connection
 import crypto from 'crypto'; // Titkos aktiváló kód generálása
 import { emailService } from '$lib/server/services/emailService'; // Email küldő szolgáltatás
+import { BCRYPT_KOLTSEG, megerositesLejarata } from '$lib/server/fiokBiztonsag';
 
 export const POST = async ({ request, url, getClientAddress }) => {
     try {
@@ -49,8 +50,7 @@ export const POST = async ({ request, url, getClientAddress }) => {
         }
 
         // 4. Jelszó titkosítása
-        const saltRounds = 10;
-        const hashedPassword = await bcrypt.hash(password, saltRounds);
+        const hashedPassword = await bcrypt.hash(password, BCRYPT_KOLTSEG);
 
         // 5. Generál egy egyedi, lehetetlenül nehéz kódot a megerősítéshez
         const token = crypto.randomUUID();
@@ -62,7 +62,8 @@ export const POST = async ({ request, url, getClientAddress }) => {
                 email: email,
                 password_hash: hashedPassword,
                 email_verified: false,      // ÚJ: Alapból blokkolva van
-                verification_token: token   // ÚJ: Itt tároljuk a titkos kódot
+                verification_token: token,  // ÚJ: Itt tároljuk a titkos kódot
+                verification_lejarat: megerositesLejarata()
             }
         });
 

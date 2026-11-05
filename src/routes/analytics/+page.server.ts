@@ -1,6 +1,7 @@
 // src/routes/statisztika/+page.server.ts
 import { services } from '$lib/server';
 import { redirect } from '@sveltejs/kit';
+import { csvExportEngedelyezett } from '$lib/csomagok';
 
 export const load = async ({ locals }) => {
     // Biztonsági ellenőrzés: csak bejelentkezett felhasználó láthatja
@@ -76,6 +77,7 @@ export const load = async ({ locals }) => {
     const egyediForrasok = Array.from(osszevontForrasokMap.values());
 
     return {
+        csvExport: csvExportEngedelyezett(locals.user),
         osszesElemzes,
         stat,
         forrasok: egyediForrasok,

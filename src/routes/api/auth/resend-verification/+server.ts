@@ -4,6 +4,7 @@ import crypto from 'crypto';
 import { services } from '$lib/server';
 import { emailService } from '$lib/server/services/emailService';
 import { korlatTullepve, probaRogzitese, ugyfelIp } from '$lib/server/rateLimit';
+import { megerositesLejarata } from '$lib/server/fiokBiztonsag';
 
 // Spam védelem: e-mail címenként legfeljebb 2 percenként küldünk új levelet
 const UJRAKULDES_VARAKOZAS_MS = 2 * 60 * 1000;
@@ -40,7 +41,7 @@ export const POST = async ({ request, url, getClientAddress }) => {
     const token = crypto.randomUUID();
     await services.db.felhasznalok.update({
         where: { id: user.id },
-        data: { verification_token: token }
+        data: { verification_token: token, verification_lejarat: megerositesLejarata() }
     });
 
     try {

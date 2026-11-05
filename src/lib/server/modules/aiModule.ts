@@ -3,6 +3,7 @@ import type { Services } from '../index';
 import { decrypt } from '../crypto';
 import { KATEGORIA_SZOTAR, illeszkedoKategoria } from '$lib/kategoriak';
 import { modellValasztas } from '$lib/aiModellek';
+import { bombahirE, kulcsszoTalalat, kulonbozoForrasokSzama, temakorRiasztasE } from '$lib/hirSzabalyok';
 import { createJevEloszuro } from '../services/jevService';
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -13,13 +14,6 @@ const ELEMZESI_LIMIT = 10;
 // Tokentakarékosság: az elemzéshez a cikk szövegéből legfeljebb ennyi karaktert küldünk
 // (az RSS leírások jellemzően rövidebbek, de egyes portálok a teljes cikket beleteszik)
 const MAX_SZOVEG_HOSSZ = 2500;
-
-// Témakör alapú riasztás csak ennél a hírértéknél (vagy felette) indul
-const TEMAKOR_RIASZTASI_KUSZOB = 71;
-
-// Bombahír feltételei: ennyi különböző forrás hozta le az eseményt, legalább ekkora hírértékkel
-const BOMBAHIR_MIN_FORRAS = 3;
-const BOMBAHIR_MIN_HIRERTEK = 60;
 
 // Ennyi egymást követő hiba után leáll az adott felhasználó elemzése (pl. hibás kulcsnál felesleges tovább próbálkozni)
 const MAX_EGYMAS_UTANI_HIBA = 3;
@@ -95,6 +89,8 @@ export function createAiModule(services: Services) {
                 where: { felhasznalo_id: userId }
             });
 
+            const figyeltKulcsszavak = userKulcsszavak.map((k: { kulcsszo: string }) => k.kulcsszo);
+
             // Gap analízis csak akkor értelmes, ha a felhasználónak van saját forrása
             const vanSajatForras = (await services.db.hirForrasok.count({
                 where: { felhasznalo_id: userId, is_own_source: true }
@@ -123,8 +119,7 @@ export function createAiModule(services: Services) {
 
                     // ELŐSZŰRÉS: a nyilvánvalóan alacsony értékű cikkre nem hívunk LLM-et.
                     // Figyelt kulcsszót tartalmazó cikket sosem szűrünk ki, hogy ne maradjon el riasztás.
-                    const kereshetoSzoveg = (hir.cim + ' ' + szoveg).toLowerCase();
-                    const kulcsszavasCikk = userKulcsszavak.some((k: { kulcsszo: string }) => kereshetoSzoveg.includes(k.kulcsszo.toLowerCase()));
+                    const kulcsszavasCikk = kulcsszoTalalat(hir.cim + ' ' + szoveg, figyeltKulcsszavak) !== null;
                     if (jevEloszuro && !kulcsszavasCikk) {
                         try {
                             const jev = await jevEloszuro(hir.cim, szoveg);
@@ -194,25 +189,22 @@ export function createAiModule(services: Services) {
 
                     const klaszterCikkek = frissKeszHirek.filter((h: any) => h.cluster_id === clusterId);
                     // Bombahír: ugyanazt az eseményt legalább 3 KÜLÖNBÖZŐ forrás hozta le, és a hír jelentős is
-                    const kulonbozoForrasok = new Set(klaszterCikkek.map((h: any) => h.forras_id)).size;
-                    if (kulonbozoForrasok >= BOMBAHIR_MIN_FORRAS && aiEredmeny.pontszam >= BOMBAHIR_MIN_HIRERTEK) {
+                    const kulonbozoForrasok = kulonbozoForrasokSzama(klaszterCikkek.map((h: any) => h.forras_id));
+                    if (bombahirE(kulonbozoForrasok, aiEredmeny.pontszam)) {
                         riasztasOka = `Bombahír (${kulonbozoForrasok} forrás lehozta)`;
                         ertesitesCimPrefix = "🔥 BOMBAHÍR:";
                     }
 
                     if (!riasztasOka) {
-                        const textToSearch = (hir.cim + " " + (aiEredmeny.osszefoglalo || "")).toLowerCase();
-                        for (const k of userKulcsszavak) {
-                            if (textToSearch.includes(k.kulcsszo.toLowerCase())) {
-                                riasztasOka = `Kulcsszó találat (${k.kulcsszo})`;
-                                ertesitesCimPrefix = "🎯 RELEVÁNS TÉMA:";
-                                break;
-                            }
+                        const talalat = kulcsszoTalalat(hir.cim + " " + (aiEredmeny.osszefoglalo || ""), figyeltKulcsszavak);
+                        if (talalat) {
+                            riasztasOka = `Kulcsszó találat (${talalat})`;
+                            ertesitesCimPrefix = "🎯 RELEVÁNS TÉMA:";
                         }
                     }
 
                     // Feliratkozott témakör: csak kiemelt hírértékű (71+) hírnél, hogy ne legyen spam
-                    if (!riasztasOka && aiEredmeny.pontszam >= TEMAKOR_RIASZTASI_KUSZOB) {
+                    if (!riasztasOka && temakorRiasztasE(aiEredmeny.pontszam)) {
                         const katId = illeszkedoKategoria(aiEredmeny.kulcsszavak, user.feliratkozott_kategoriak);
                         if (katId) {
                             riasztasOka = `Feliratkozott témakör (${KATEGORIA_SZOTAR[katId].nev})`;

@@ -2,15 +2,7 @@
 import { services } from '$lib/server';
 import { redirect } from '@sveltejs/kit';
 import { KATEGORIA_SZOTAR } from '$lib/kategoriak';
-
-// --- FONTOSSÁGI RANGSOR ---
-// 0 = Kiemelt (magas hírérték, nem clickbait), 1 = Normál, 2 = Hátrasorolt (clickbait vagy alacsony hírérték)
-const rangsorSzint = (e: { pontszam: number | null; clickbait: number }) => {
-    const pontszam = e.pontszam ?? 0;
-    if (e.clickbait >= 71 || pontszam <= 30) return 2;
-    if (pontszam > 70) return 0;
-    return 1;
-};
+import { rangsorSzint } from '$lib/hirSzabalyok';
 
 export const load = async ({ locals, url }) => {
     // 1. AJTÓNÁLLÓ (GUARD)
@@ -92,7 +84,15 @@ export const load = async ({ locals, url }) => {
         select: { forras_nev: true, forras_url: true, kikapcsolas_oka: true }
     });
 
+    // 8. "Első lépések" lista: a szűrőktől függetlenül számolunk, különben keresésnél is új fióknak látszana
+    const [forrasokSzama, elemzesekSzama] = await Promise.all([
+        prisma.hirForrasok.count({ where: { felhasznalo_id: userId } }),
+        prisma.aiElemzesek.count({ where: { hir: { forras: { felhasznalo_id: userId } } } })
+    ]);
+
     return {
+        forrasokSzama,
+        elemzesekSzama,
         vanApiKulcs: !!kulcsok?.api_key,
         vanSajatForras,
         problemasForrasok,

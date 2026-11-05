@@ -30,6 +30,33 @@
     let visibleCount = 10; // Alapból csak 10 db hírt mutat meg
     $: megjelenitettCikkek = konkurenciaCikkek.slice(0, visibleCount);
 
+    // --- ELSŐ LÉPÉSEK ---
+    // Addig látszik, amíg az első elemzés el nem készül
+    $: lepesek = [
+        {
+            kesz: data.vanApiKulcs,
+            cim: 'Add meg az AI kulcsodat',
+            leiras: 'A hírek elemzése a saját kulcsoddal történik (OpenAI, Anthropic, Google vagy Groq).',
+            link: '/settings',
+            gomb: 'API kulcs megadása'
+        },
+        {
+            kesz: data.forrasokSzama > 0,
+            cim: 'Vegyél fel legalább egy hírforrást',
+            leiras: 'Elég a hírportál címe, a rendszer megpróbálja megkeresni az RSS csatornáját.',
+            link: '/settings?tab=forrasok',
+            gomb: 'Forrás hozzáadása'
+        },
+        {
+            kesz: data.elemzesekSzama > 0,
+            cim: 'Várd meg az első elemzést',
+            leiras: 'A rendszer óránként gyűjti és elemzi a híreket, ezért az első eredmény legfeljebb egy-két órán belül megjelenik.',
+            link: '',
+            gomb: ''
+        }
+    ];
+    $: elsoLepesekLatszik = data.elemzesekSzama === 0;
+
     // URL építő: megtartja az aktuális szűrőket, csak a megadott paramétert írja felül
     function szuroLink(valtozas: Record<string, string>) {
         const params = new URLSearchParams();
@@ -54,8 +81,37 @@
         </h1>
     </div>
 
-    <!-- BYOK FIGYELMEZTETÉS -->
-    {#if !data.vanApiKulcs}
+    <!-- ELSŐ LÉPÉSEK -->
+    {#if elsoLepesekLatszik}
+        <section class="mb-8 rounded-xl border border-blue-200 bg-blue-50 p-5 dark:border-blue-900 dark:bg-blue-900/20" aria-labelledby="elso-lepesek">
+            <h2 id="elso-lepesek" class="text-lg font-bold text-gray-900 dark:text-white">Első lépések</h2>
+            <ol class="mt-4 space-y-4">
+                {#each lepesek as lepes, i}
+                    <li class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div class="flex items-start gap-3">
+                            <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm font-bold {lepes.kesz ? 'bg-green-600 text-white' : 'bg-white text-blue-700 ring-1 ring-blue-300 dark:bg-gray-800 dark:text-blue-300 dark:ring-blue-800'}">
+                                {lepes.kesz ? '✓' : i + 1}
+                            </span>
+                            <div>
+                                <p class="font-semibold text-gray-900 dark:text-white {lepes.kesz ? 'line-through opacity-70' : ''}">
+                                    {lepes.cim}<span class="sr-only">{lepes.kesz ? ' (kész)' : ''}</span>
+                                </p>
+                                {#if !lepes.kesz}
+                                    <p class="mt-0.5 text-sm text-gray-600 dark:text-gray-300">{lepes.leiras}</p>
+                                {/if}
+                            </div>
+                        </div>
+                        {#if !lepes.kesz && lepes.link}
+                            <Button href={lepes.link} color="blue" size="sm" class="shrink-0 font-semibold">{lepes.gomb}</Button>
+                        {/if}
+                    </li>
+                {/each}
+            </ol>
+        </section>
+    {/if}
+
+    <!-- BYOK FIGYELMEZTETÉS (az első lépések lista ezt már tartalmazza) -->
+    {#if !data.vanApiKulcs && !elsoLepesekLatszik}
         <div class="mb-8 p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-800 rounded-xl">
             <div>
                 <h3 class="font-bold text-yellow-800 dark:text-yellow-300">Nincs beállítva AI API kulcs</h3>
@@ -233,7 +289,7 @@
             </div>
         {/if}
 
-        {#if konkurenciaCikkek.length === 0}
+        {#if konkurenciaCikkek.length === 0 && !elsoLepesekLatszik}
             <Card size="xl" class="col-span-full text-center shadow-lg dark:bg-gray-800 w-full max-w-none py-16 mt-4 border border-gray-200 dark:border-gray-700">
                 <SearchSolid class="w-24 h-24 mx-auto text-blue-500 mb-6 animate-pulse" />
                 <h2 class="text-3xl font-extrabold text-gray-900 dark:text-white mb-4">Jelenleg üres a hírfolyamod!</h2>

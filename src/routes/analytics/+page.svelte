@@ -189,10 +189,15 @@
 </svelte:head>
 
 <div class="container mx-auto p-4 mt-8 max-w-5xl">
-    <h1 class="text-4xl font-extrabold mb-8 text-gray-900 dark:text-white flex items-center gap-3">
-        <ChartPieSolid class="w-10 h-10 text-blue-600 dark:text-blue-500" />
-        Rendszer Statisztikák
-    </h1>
+    <div class="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <h1 class="text-4xl font-extrabold text-gray-900 dark:text-white flex items-center gap-3">
+            <ChartPieSolid class="w-10 h-10 text-blue-600 dark:text-blue-500" />
+            Rendszer Statisztikák
+        </h1>
+        {#if data.csvExport && data.osszesElemzes > 0}
+            <Button href="/api/export/elemzesek" color="alternative" class="shrink-0 font-semibold" data-sveltekit-reload>CSV letöltése</Button>
+        {/if}
+    </div>
 
     {#if data.forrasok.length === 0}
         

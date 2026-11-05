@@ -69,7 +69,7 @@ const biztonsagosLookup: net.LookupFunction = (hostname, options, callback) => {
 };
 
 // A cím formai ellenőrzése: csak http(s), a szokásos portokon, beágyazott jelszó és belső IP nélkül
-function urlEllenorzes(cim: string): URL {
+export function urlEllenorzes(cim: string): URL {
     let url: URL;
     try {
         url = new URL(cim);

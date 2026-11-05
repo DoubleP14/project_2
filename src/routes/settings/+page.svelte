@@ -530,8 +530,8 @@
                         </div>
                         <ul class="space-y-3 text-sm text-gray-600 dark:text-gray-300 mb-6">
                             <li class="flex items-center gap-2"><CheckCircleSolid class="w-4 h-4 text-gray-400"/> Minden Pro Analyst funkció</li>
-                            <li class="flex items-center gap-2"><CheckCircleSolid class="w-4 h-4 text-gray-400"/> Dedikált API hozzáférés</li>
-                            <li class="flex items-center gap-2"><CheckCircleSolid class="w-4 h-4 text-gray-400"/> Statisztikai PDF/CSV adatexport</li>
+                            <li class="flex items-center gap-2"><CheckCircleSolid class="w-4 h-4 text-gray-400"/> CSV adatexport a hírekről és elemzésekről</li>
+                            <li class="flex items-center gap-2"><CheckCircleSolid class="w-4 h-4 text-gray-400"/> API hozzáférés és PDF export (tervezett)</li>
                         </ul>
                     </div>
                     <Button href="/checkout?tier=enterprise" color="dark" class="w-full">
