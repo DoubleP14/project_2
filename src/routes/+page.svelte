@@ -21,7 +21,7 @@
             nev: 'Enterprise',
             ar: '9 990',
             leiras: 'Cégeknek, teljes körű médiafigyeléshez.',
-            funkciok: ['Minden Pro Analyst funkció', 'Dedikált API hozzáférés', 'Statisztikai PDF/CSV adatexport'],
+            funkciok: ['Minden Pro Analyst funkció', 'CSV adatexport a hírekről és elemzésekről', 'API hozzáférés és PDF export (tervezett)'],
             gomb: 'Céges csatlakozás',
             kiemelt: false
         }

@@ -40,7 +40,7 @@ export const emailService = {
                 'Köszönjük, hogy regisztráltál! A fiókod aktiválásához és a belépéshez kérjük, kattints az alábbi gombra:',
                 'Fiók aktiválása',
                 verifyUrl,
-                'Ha nem te regisztráltál, nyugodtan hagyd figyelmen kívül ezt a levelet.'
+                'A link 24 óráig érvényes. Ha nem te regisztráltál, nyugodtan hagyd figyelmen kívül ezt a levelet.'
             )
         });
     },

@@ -2,6 +2,7 @@
 import { fail, redirect } from '@sveltejs/kit';
 import crypto from 'crypto';
 import bcrypt from 'bcrypt';
+import { BCRYPT_KOLTSEG } from '$lib/server/fiokBiztonsag';
 import type { Actions, PageServerLoad } from './$types';
 import { services } from '$lib/server';
 import { logger } from '$lib/server/services/loggerService';
@@ -46,13 +47,14 @@ export const actions: Actions = {
         await services.db.felhasznalok.update({
             where: { id: user.id },
             data: {
-                password_hash: await bcrypt.hash(jelszo, 10),
+                password_hash: await bcrypt.hash(jelszo, BCRYPT_KOLTSEG),
                 // A token egyszer használatos
                 jelszo_reset_token: null,
                 jelszo_reset_lejarat: null,
                 // Az e-mailben kapott link igazolja az e-mail cím birtoklását
                 email_verified: true,
                 verification_token: null,
+                verification_lejarat: null,
                 // Minden korábbi munkamenet (pl. egy illetéktelen által nyitott is) azonnal megszűnik
                 token_verzio: { increment: 1 }
             }

@@ -74,7 +74,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 
     // BIZTONSÁG: a jelszó-hash, a tokenek és a belső azonosítók SOHA nem kerülnek a böngészőbe
     const {
-        password_hash, verification_token, jelszo_reset_token, jelszo_reset_lejarat,
+        password_hash, verification_token, verification_lejarat, jelszo_reset_token, jelszo_reset_lejarat,
         google_id, token_verzio, utolso_fizetes_session, ...biztonsagosAdatok
     } = felhasznalo ?? ({} as NonNullable<typeof felhasznalo>);
 

@@ -18,6 +18,12 @@ export type JevEredmeny = {
     tokenek: number;
 };
 
+// Csak biztos értékelésnél szűrünk: nagyon alacsony hírérték, vagy erős clickbait nem kiemelt hírnél
+export function jevSzurendoE(e: { hirertek: number; clickbait: number; hirertekBizalom: number; clickbaitBizalom: number }): boolean {
+    const biztos = e.hirertekBizalom >= MIN_MEGBIZHATOSAG && e.clickbaitBizalom >= MIN_MEGBIZHATOSAG;
+    return biztos && (e.hirertek <= ALACSONY_HIRERTEK || (e.clickbait >= EROS_CLICKBAIT && e.hirertek <= KIEMELT_HIRERTEK));
+}
+
 export function createJevEloszuro(apiKey: string) {
     // Egy gyors szűrő ne akassza meg a feldolgozást: rövid időkorlát, egy újrapróbálkozás
     const client = new TypeSafeClient({ apiKey, timeout: 8000, retry: { maxRetries: 1 } });
@@ -45,8 +51,12 @@ export function createJevEloszuro(apiKey: string) {
         const hirertek = Math.round((answers.hirertek.score / 4) * 100);
         const clickbait = Math.round((answers.clickbait.score / 2) * 100);
 
-        const biztos = answers.hirertek.confidence >= MIN_MEGBIZHATOSAG && answers.clickbait.confidence >= MIN_MEGBIZHATOSAG;
-        const szurendo = biztos && (hirertek <= ALACSONY_HIRERTEK || (clickbait >= EROS_CLICKBAIT && hirertek <= KIEMELT_HIRERTEK));
+        const szurendo = jevSzurendoE({
+            hirertek,
+            clickbait,
+            hirertekBizalom: answers.hirertek.confidence,
+            clickbaitBizalom: answers.clickbait.confidence
+        });
 
         return { hirertek, clickbait, szurendo, tokenek: usage.input_tokens ?? 0 };
     };

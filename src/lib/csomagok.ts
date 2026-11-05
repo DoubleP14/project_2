@@ -41,3 +41,7 @@ export function ujLejaratSzamitasa(
 
 export const hatralevoNapok = (lejarat: Date | string | null | undefined, most: Date = new Date()) =>
     lejarat ? Math.max(0, Math.ceil((new Date(lejarat).getTime() - most.getTime()) / NAP_MS)) : 0;
+
+// A CSV adatexport az Enterprise csomag része (az admin a rendszer ellenőrzéséhez szintén használhatja)
+export const csvExportEngedelyezett = (user: { subscription_tier?: string | null; role?: string | null }) =>
+    user.subscription_tier === 'enterprise' || user.role === 'admin';

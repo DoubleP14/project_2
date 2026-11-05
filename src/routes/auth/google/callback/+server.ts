@@ -63,6 +63,7 @@ export const GET = async ({ url, cookies }) => {
                         google_id: profil.sub,
                         email_verified: true,
                         verification_token: null,
+                        verification_lejarat: null,
                         ...(emailesFiok.email_verified ? {} : { password_hash: null, token_verzio: { increment: 1 } })
                     }
                 });

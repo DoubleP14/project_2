@@ -4,6 +4,7 @@ import { services } from '$lib/server';
 import { munkamenetInditasa } from '$lib/server/session';
 import { logger } from '$lib/server/services/loggerService'; 
 import { korlatTullepve, probaRogzitese, korlatTorlese, ugyfelIp } from '$lib/server/rateLimit';
+import { BCRYPT_KOLTSEG } from '$lib/server/fiokBiztonsag';
 
 // Próbálkozási korlát: 15 percenként fiókonként 10, IP-címenként 30 sikertelen belépés
 const ABLAK_MS = 15 * 60 * 1000;
@@ -11,7 +12,7 @@ const MAX_FIOK = 10;
 const MAX_IP = 30;
 
 // Nem létező fióknál is lefut egy jelszó-összehasonlítás, így a válaszidőből sem derül ki, létezik-e a fiók
-const ALHASH = bcrypt.hashSync('nem-letezo-fiok-alhash', 10);
+const ALHASH = bcrypt.hashSync('nem-letezo-fiok-alhash', BCRYPT_KOLTSEG);
 const HIBAS_BELEPES = 'Hibás email cím vagy jelszó! Ha Google-fiókkal regisztráltál, használd a „Folytatás Google-fiókkal” gombot.';
 
 export const POST = async ({ request, cookies, getClientAddress }) => {
@@ -58,6 +59,19 @@ export const POST = async ({ request, cookies, getClientAddress }) => {
         // ─── ADMIN ÁLTAL LETILTOTT FIÓK ───
         if (!user.aktiv) {
             return json({ error: 'A fiókodat egy adminisztrátor letiltotta.' }, { status: 403 });
+        }
+
+        // A régebbi, gyengébb költségű hash-t sikeres belépéskor frissítjük (ilyenkor ismerjük a jelszót).
+        // Ha ez nem sikerül, a belépés akkor is érvényes, a következő alkalommal újra megpróbáljuk.
+        if (bcrypt.getRounds(user.password_hash) < BCRYPT_KOLTSEG) {
+            try {
+                await prisma.felhasznalok.update({
+                    where: { id: user.id },
+                    data: { password_hash: await bcrypt.hash(password, BCRYPT_KOLTSEG) }
+                });
+            } catch (frissitesiHiba) {
+                console.error('Nem sikerült frissíteni a jelszó-hash-t:', frissitesiHiba);
+            }
         }
 
         // 3-4. JWT token gyártás és munkamenet süti beállítása

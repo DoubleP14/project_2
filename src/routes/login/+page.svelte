@@ -15,6 +15,7 @@
     // Visszajelzés az e-mail megerősítő linkről érkezőknek
     const megerositve = $page.url.searchParams.get('verified') === 'true';
     const ervenytelenLink = $page.url.searchParams.get('error') === 'invalid_token';
+    const lejartLink = $page.url.searchParams.get('error') === 'expired_token';
     const jelszoVisszaallitva = $page.url.searchParams.get('reset') === 'true';
     const mindenholKijelentkezve = $page.url.searchParams.get('logout_all') === 'true';
 
@@ -104,6 +105,9 @@
         {/if}
         {#if ervenytelenLink}
             <Alert color="red" class="mb-4">A megerősítő link érvénytelen vagy már felhasználták.</Alert>
+        {/if}
+        {#if lejartLink}
+            <Alert color="red" class="mb-4">A megerősítő link lejárt (24 óráig érvényes). Próbálj meg bejelentkezni, és a megjelenő gombbal kérhetsz új levelet.</Alert>
         {/if}
         {#if jelszoVisszaallitva}
             <Alert color="green" class="mb-4">Az új jelszavad elmentve! Biztonsági okból minden eszközön kijelentkeztettünk – jelentkezz be az új jelszóval.</Alert>
