@@ -29,3 +29,6 @@ vite.config.ts.timestamp-*
 # Produkciós telepítés: adatbázis mentések és Cloudflare Origin tanúsítvány (titkos kulcs!)
 backups/
 deploy/certs/
+
+# AI-kiértékelés: letöltött cikkek és pontozólapok
+scripts/ai-kiertekeles/munka/
