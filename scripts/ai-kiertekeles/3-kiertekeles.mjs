@@ -5,7 +5,10 @@ import { existsSync, readdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
-import { csvBeolvas, exportVizsgalat, fajlSzoveg, hangulatMeres, hangulatNormal, HANGULATOK, jevSorE, pontszamMeres } from './kozos.mjs';
+import { readFileSync } from 'node:fs';
+import { csvBeolvas, exportVizsgalat, fajlSzoveg, hangulatMeres, hangulatNormal, HANGULATOK, jevSorE, pontszamMeres, promptPeldak, szivargasE } from './kozos.mjs';
+
+const AI_SERVICE = join(dirname(fileURLToPath(import.meta.url)), '../../src/lib/server/services/aiService.ts');
 
 const szam = (x, t = 2) => (x === undefined || Number.isNaN(x) ? 'n. a.' : x.toFixed(t).replace('.', ','));
 const szazalek = (x) => (x === undefined || Number.isNaN(x) ? 'n. a.' : `${(x * 100).toFixed(1).replace('.', ',')}%`);
@@ -124,6 +127,8 @@ function fo() {
     const { values: o } = parseArgs({
         options: {
             'csak-export': { type: 'boolean', default: false },
+            lap: { type: 'string', default: 'pontozolap.csv' },
+            ertekelo: { type: 'string', default: 'ember' },
             mappa: { type: 'string', default: join(dirname(fileURLToPath(import.meta.url)), 'munka') }
         }
     });
@@ -131,9 +136,16 @@ function fo() {
     const minta = csvBeolvas(fajlSzoveg(join(o.mappa, 'minta.csv'))).filter((s) => s.hir_id && s.cim);
     const kimenet = [`# AI-kiértékelés eredménye`, '', `Készült: ${new Date().toISOString().slice(0, 10)}`, '', ...exportResz(exportVizsgalat(minta))];
 
-    const lapFajl = join(o.mappa, 'pontozolap.csv');
+    const lapFajl = join(o.mappa, o.lap);
     if (!o['csak-export'] && existsSync(lapFajl)) {
-        const { kitoltott, hibak, hianyos } = pontozolapBeolvasas(csvBeolvas(fajlSzoveg(lapFajl)));
+        const lapSorok = csvBeolvas(fajlSzoveg(lapFajl));
+        const { kitoltott: mindKitoltott, hibak, hianyos } = pontozolapBeolvasas(lapSorok);
+
+        // A prompt példáival egyező cikkeken a modell a választ is látta, ezért ezek nem számítanak bele
+        const peldak = promptPeldak(readFileSync(AI_SERVICE, 'utf8'));
+        const szivargo = lapSorok.filter((s) => szivargasE(s.cim, peldak));
+        const szivargoSorszam = new Set(szivargo.map((s) => s.sorszam));
+        const kitoltott = mindKitoltott.filter((s) => !szivargoSorszam.has(s.sorszam));
         if (hibak.length) {
             console.error(`Javítandó sorok a pontozólapon (ezek most kimaradnak):\n- ${hibak.join('\n- ')}`);
         }
@@ -145,9 +157,11 @@ function fo() {
         const jevKulcs = kulcs.filter(jevSorE);
 
         kimenet.push(
-            '## Kézi pontozás',
+            `## Pontozás (értékelő: ${o.ertekelo})`,
             '',
-            `Kitöltött cikkek: ${kitoltott.length}. A minta rétegzett (a ritka eseteket felülsúlyozza), ezért a számok nem a teljes hírfolyam arányait mutatják. Egyetlen pontozó értékelt, ezért az eredmény az ő megítélését tükrözi.`,
+            `Kitöltött cikkek: ${mindKitoltott.length}, ebből kizárva ${szivargo.length}, mert szerepel a prompt példái között: ${szivargo.map((s) => `#${s.sorszam}`).join(', ') || 'nincs'}. Értékelt: ${kitoltott.length}.`,
+            '',
+            'A minta rétegzett (a ritka eseteket felülsúlyozza), ezért a számok nem a teljes hírfolyam arányait mutatják. Egyetlen értékelő pontozott, ezért az eredmény az ő megítélését tükrözi.',
             ''
         );
         kimenet.push(...modellMeres(`Éles rendszer (${[...new Set(llmKulcs.map((s) => s.hasznalt_modell))].join(', ')})`, llmKulcs, ember));
@@ -185,7 +199,7 @@ function fo() {
         }
     }
 
-    const fajl = join(o.mappa, 'eredmeny.md');
+    const fajl = join(o.mappa, o.lap === 'pontozolap.csv' ? 'eredmeny.md' : `eredmeny-${o.lap.replace(/.csv$/, '')}.md`);
     writeFileSync(fajl, kimenet.join('\n'), 'utf8');
     console.log(`Eredmény: ${fajl}`);
 }

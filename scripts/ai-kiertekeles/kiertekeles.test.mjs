@@ -227,3 +227,23 @@ describe('modellfuttatás', () => {
         expect(futasFajlNev('../../rossz')).toBe('futas-.._.._rossz.csv');
     });
 });
+
+describe('szivárgás a prompt példáiból', async () => {
+    const { promptPeldak, szivargasE } = await import('./kozos.mjs');
+    const prompt = 'Példák: "Kisrepülő zuhant le Floridában" = 40; "28 év után hazatért a brit kalandor" = 20; "Nem hinném - kommentelte Magyar" = 55;';
+    const peldak = promptPeldak(prompt);
+
+    it('kiolvassa a példacímeket', () => {
+        expect(peldak).toEqual(['Kisrepülő zuhant le Floridában', '28 év után hazatért a brit kalandor', 'Nem hinném - kommentelte Magyar']);
+    });
+
+    it('felismeri a szó szerinti és a ragozott változatot', () => {
+        expect(szivargasE('„Jó otthon lenni” – 28 év után hazatért a brit kalandor, aki gyalog utazta körbe a Földet', peldak)).toBe(true);
+        expect(szivargasE('Két kisgyerek is utazott azon a kisrepülőgépen, ami a földbe csapódott Floridában', peldak)).toBe(true);
+    });
+
+    it('a csak egy közös szót tartalmazó címet nem jelöli', () => {
+        expect(szivargasE('Magyar Péter a krakkói támadásról', peldak)).toBe(false);
+        expect(szivargasE('Áradás Floridában', peldak)).toBe(false);
+    });
+});

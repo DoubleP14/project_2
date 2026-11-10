@@ -278,6 +278,22 @@ export function hangulatMeres(ai, ember) {
     return { n, pontossag, makroF1: atlag(f1k), kappa: varhato < 1 ? (pontossag - varhato) / (1 - varhato) : NaN, matrix };
 }
 
+// ─── SZIVÁRGÁS A PROMPT PÉLDÁIBÓL ─────────────────────────────────────
+
+// A prompt kalibrációs példái ("Cím" = pontszám). Ha egy mért cikk ezek egyike, a modell a választ is látta.
+export const promptPeldak = (prompt) => [...prompt.matchAll(/"([^"\n]{10,})"\s*=\s*\d+/g)].map((m) => m[1]);
+
+const kulcsszavai = (s) => [...new Set(String(s).toLowerCase().match(/[\p{L}\d-]{4,}/gu) ?? [])];
+
+// Egyezik, ha a példa hosszabb szavainak legalább 60%-a szerepel a címben (szórészletként is, a ragok miatt)
+export function szivargasE(cim, peldak) {
+    const kicsi = String(cim).toLowerCase();
+    return peldak.some((p) => {
+        const szavak = kulcsszavai(p);
+        return szavak.length >= 2 && szavak.filter((sz) => kicsi.includes(sz)).length / szavak.length >= 0.6;
+    });
+}
+
 // ─── A TELJES EXPORT AUTOMATIKUS VIZSGÁLATA (kézi pontozás nélkül) ────
 
 const ANGOL_SZAVAK = new Set(['the', 'and', 'of', 'has', 'have', 'was', 'were', 'will', 'with', 'for', 'that', 'from', 'is', 'are', 'to', 'in', 'on', 'by']);
