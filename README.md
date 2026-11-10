@@ -24,7 +24,7 @@ A **News Trends** egy B2B SaaS webalkalmazás, amely cégvezetőknek és elemző
 - **Forrásfigyelés:** a felhasználó látja forrásai állapotát (működik / hiba / kikapcsolva); 24 egymás utáni hiba után a rendszer automatikusan kikapcsolja a forrást és e-mailben értesít.
 - **Admin központ:** felhasználók felfüggesztése, rendszernapló, figyelmet igénylő források (naplózott admin kikapcsolással), kézi frissítés és takarítás.
 - **Előfizetés:** Starter / Pro Analyst / Enterprise csomagok, előre fizetett 30 napos hozzáférés (nincs automatikus megújítás), hosszabbítás és csomagváltás értékarányos jóváírással, lejárati emlékeztető, Stripe fizetés, automatikus e-számla.
-- **GDPR:** adatkezelési tájékoztató (`/adatvedelem`), visszavonhatatlan fióktörlés minden kapcsolódó adattal együtt.
+- **GDPR:** adatkezelési tájékoztató (`/adatvedelem`), visszavonhatatlan fióktörlés minden kapcsolódó adattal együtt, e-mailes megerősítéssel (egy eltérített munkamenettel sem törölhető a fiók).
 
 ## Technológiák
 

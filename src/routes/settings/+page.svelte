@@ -111,7 +111,7 @@
     </div>
 
 
-    {#if form?.message}
+    {#if form?.message && !form?.torlesKerve}
         <Alert color={form.success ? 'green' : 'red'} class="mb-6 animate-fade-in">
             <InfoCircleSolid slot="icon" class="w-4 h-4" />
             <span class="font-medium">{form.message}</span>
@@ -640,7 +640,7 @@
                     <div>
                         <h4 class="text-lg font-bold text-gray-900 dark:text-white">Fiók végleges törlése</h4>
                         <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                            Ha törlöd a fiókodat, az összes adatod, hírforrásod, AI elemzésed és előfizetésed <b>azonnal és visszavonhatatlanul</b> törlődik a szervereinkről.
+                            Ha törlöd a fiókodat, az összes adatod, hírforrásod, AI elemzésed és előfizetésed <b>visszavonhatatlanul</b> törlődik a szervereinkről. Biztonsági okból a törlést az e-mail címedre küldött linkkel kell megerősítened.
                         </p>
                     </div>
                     <Button color="red" class="whitespace-nowrap font-bold" on:click={() => torlesModalNyitva = true}>
@@ -655,14 +655,22 @@
 <Modal bind:open={torlesModalNyitva} size="xs" autoclose={false}>
     <div class="text-center">
         <ExclamationCircleOutline class="mx-auto mb-4 text-red-500 w-12 h-12" />
-        <h3 class="mb-5 text-lg font-normal text-gray-500 dark:text-gray-400">
-            Biztosan törölni szeretnéd a fiókodat? Ezt a műveletet <b>nem lehet</b> visszavonni!
-        </h3>
-        
-        <form method="POST" action="?/fiokTorlese" use:enhance class="flex flex-col gap-3">
-            <Button color="red" type="submit" class="w-full font-bold">Igen, véglegesen törlöm</Button>
-            <Button color="alternative" class="w-full" on:click={() => torlesModalNyitva = false}>Mégse</Button>
-        </form>
+        {#if form?.torlesKerve}
+            <h3 class="mb-5 text-base font-normal text-gray-600 dark:text-gray-300">{form.message}</h3>
+            <Button color="alternative" class="w-full" on:click={() => torlesModalNyitva = false}>Bezárás</Button>
+        {:else}
+            <h3 class="mb-2 text-lg font-normal text-gray-500 dark:text-gray-400">
+                Biztosan törölni szeretnéd a fiókodat? Ezt a műveletet <b>nem lehet</b> visszavonni!
+            </h3>
+            <p class="mb-5 text-sm text-gray-500 dark:text-gray-400">
+                Biztonsági okból egy megerősítő linket küldünk az e-mail címedre. A fiók csak a linkkel megerősítve törlődik.
+            </p>
+
+            <form method="POST" action="?/fiokTorlese" use:enhance={() => async ({ update }) => { await update({ reset: false }); }} class="flex flex-col gap-3">
+                <Button color="red" type="submit" class="w-full font-bold">Megerősítő levél küldése</Button>
+                <Button color="alternative" class="w-full" on:click={() => torlesModalNyitva = false}>Mégse</Button>
+            </form>
+        {/if}
     </div>
 </Modal>
 

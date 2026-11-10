@@ -1,9 +1,6 @@
 <script lang="ts">
     // ─── ADATKEZELŐ ADATAI ───
-    const ADATKEZELO = {
-        nev: 'Pintér Patrik',
-        email: 'pinter.patrik04@gmail.com'
-    };
+    import { ADATKEZELO } from '$lib/adatkezelo';
     const HATALYOS = '2026. november 4.';
 
     const tartalom = [
@@ -62,7 +59,7 @@
     const jogok = [
         { cim: 'Hozzáférés', leiras: 'Tájékoztatást kérhet a kezelt adatairól; adatai nagy része a Beállítások oldalon közvetlenül is megtekinthető.' },
         { cim: 'Helyesbítés', leiras: 'Beállításait, forrásait és kulcsszavait bármikor módosíthatja.' },
-        { cim: 'Törlés („elfeledtetés”)', leiras: 'A Beállítások › Fiók törlése funkcióval fiókját és minden kapcsolódó adatát azonnal, véglegesen törölheti.' },
+        { cim: 'Törlés („elfeledtetés”)', leiras: 'A Beállítások › Fiók törlése funkcióval fiókját és minden kapcsolódó adatát véglegesen törölheti. Biztonsági okból a törlést az e-mail címére küldött linkkel kell megerősíteni, így egy illetéktelen nem törölheti a fiókját.' },
         { cim: 'Korlátozás és tiltakozás', leiras: 'Kérheti adatai kezelésének korlátozását, illetve tiltakozhat a jogos érdeken alapuló adatkezelés ellen.' },
         { cim: 'Adathordozhatóság', leiras: 'Kérésére adatait tagolt, géppel olvasható formátumban átadjuk.' }
     ];

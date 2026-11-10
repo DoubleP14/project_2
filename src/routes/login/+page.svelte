@@ -16,6 +16,7 @@
     const megerositve = $page.url.searchParams.get('verified') === 'true';
     const ervenytelenLink = $page.url.searchParams.get('error') === 'invalid_token';
     const lejartLink = $page.url.searchParams.get('error') === 'expired_token';
+    const fiokTorolve = $page.url.searchParams.get('fiok_torolve') === 'true';
     const jelszoVisszaallitva = $page.url.searchParams.get('reset') === 'true';
     const mindenholKijelentkezve = $page.url.searchParams.get('logout_all') === 'true';
 
@@ -105,6 +106,9 @@
         {/if}
         {#if ervenytelenLink}
             <Alert color="red" class="mb-4">A megerősítő link érvénytelen vagy már felhasználták.</Alert>
+        {/if}
+        {#if fiokTorolve}
+            <Alert color="green" class="mb-4">A fiókodat és a hozzá tartozó adatokat véglegesen töröltük. Visszaigazolást küldtünk az e-mail címedre.</Alert>
         {/if}
         {#if lejartLink}
             <Alert color="red" class="mb-4">A megerősítő link lejárt (24 óráig érvényes). Próbálj meg bejelentkezni, és a megjelenő gombbal kérhetsz új levelet.</Alert>

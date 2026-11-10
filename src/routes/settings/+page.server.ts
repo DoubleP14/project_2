@@ -8,6 +8,7 @@ import { KATEGORIA_SZOTAR } from '$lib/kategoriak';
 import { AI_SZOLGALTATOK, ervenyesModellNev } from '$lib/aiModellek';
 import { jelszoResetLinkKuldese } from '$lib/server/jelszoReset';
 import { csatornaLetoltese, rssFelderites } from '$lib/server/rssLetolto';
+import { torlesLinkKuldese } from '$lib/server/fiokTorles';
 import { httpUrlE, discordWebhookE } from '$lib/biztonsagosUrl';
 
 // RSS forrás ellenőrzése mentés előtt: a megadott RSS link olvasható-e, vagy ha nincs megadva,
@@ -74,7 +75,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 
     // BIZTONSÁG: a jelszó-hash, a tokenek és a belső azonosítók SOHA nem kerülnek a böngészőbe
     const {
-        password_hash, verification_token, verification_lejarat, jelszo_reset_token, jelszo_reset_lejarat,
+        password_hash, verification_token, verification_lejarat, jelszo_reset_token, fiok_torles_token, fiok_torles_lejarat, jelszo_reset_lejarat,
         google_id, token_verzio, utolso_fizetes_session, ...biztonsagosAdatok
     } = felhasznalo ?? ({} as NonNullable<typeof felhasznalo>);
 
@@ -472,33 +473,28 @@ export const actions: Actions = {
     },
 
     // --- 9. FIÓK VÉGLEGES TÖRLÉSE (GDPR) ---
-    fiokTorlese: async ({ locals, cookies }) => {
+    // Nem töröl azonnal: megerősítő linket küld a fiók e-mail címére (lásd $lib/server/fiokTorles)
+    fiokTorlese: async ({ locals, url }) => {
         if (!locals.user) throw redirect(303, '/login');
-        
-        const userId = locals.user.id;
-        
-        try {
-            // Egy tranzakcióban törlünk MINDEN személyes adatot (vagy semmit):
-            // - a felhasználó hírei (az AI elemzések kaszkádolva törlődnek)
-            // - a rendszernapló bejegyzései (pl. e-mail címet tartalmazó belépési naplók)
-            // - maga a fiók (források, kulcsszavak, értesítések kaszkádolva törlődnek)
-            await services.db.$transaction([
-                services.db.hirek.deleteMany({ where: { felhasznalo_id: userId } }),
-                services.db.rendszerNaplo.deleteMany({ where: { felhasznalo_id: userId } }),
-                services.db.felhasznalok.delete({ where: { id: userId } }),
-                // Anonim audit bejegyzés, személyes adat nélkül
-                services.db.rendszerNaplo.create({
-                    data: { esemeny_tipus: 'ACCOUNT_DELETED', leiras: 'Egy felhasználói fiók és a hozzá tartozó adatok véglegesen törölve (GDPR).' }
-                })
-            ]);
 
-            // Süti törlése és "szellem" munkamenet megszüntetése a szerveren
-            cookies.delete('session_token', { path: '/' });
-            locals.user = undefined;
+        const user = await services.db.felhasznalok.findUnique({
+            where: { id: locals.user.id },
+            select: { id: true, email: true, fiok_torles_lejarat: true }
+        });
+        if (!user) throw redirect(303, '/login');
+
+        try {
+            const eredmeny = await torlesLinkKuldese(user, url.origin);
+            return {
+                torlesKerve: true,
+                message: eredmeny === 'NEMREG_KULDVE'
+                    ? 'Nemrég már küldtünk megerősítő levelet. Nézd meg a beérkező leveleidet (és a spam mappát), vagy kérj újat 2 perc múlva.'
+                    : `Elküldtük a megerősítő levelet a(z) ${user.email} címre. A fiók csak a levélben kapott linkkel megerősítve törlődik.`
+            };
         } catch (error) {
-            console.error('Hiba a fiók törlésekor:', error);
-            return fail(500, { message: 'Nem sikerült törölni a fiókot a szerverről.' });
+            console.error('Nem sikerült elküldeni a fióktörlés megerősítő levelét:', error);
+            return fail(500, { torlesKerve: true, message: 'Nem sikerült elküldeni a megerősítő levelet. Kérlek, próbáld újra később.' });
         }
-        throw redirect(303, '/login');
-    }
+    },
+
 };
