@@ -59,7 +59,7 @@ export const load: PageServerLoad = async ({ locals }) => {
         include: { hir: true }
     });
 
-    // 5. ÚJ: Saját riasztási kulcsszavak lekérése
+    // 5. Saját riasztási kulcsszavak lekérése
     const kulcsszavakDB = await prisma.felhasznaloKulcsszavak.findMany({
         where: { felhasznalo_id: userId },
         orderBy: { hozzadas_ideje: 'asc' }
@@ -91,7 +91,7 @@ export const load: PageServerLoad = async ({ locals }) => {
         },
         forrasok: forrasok,
         ertesitesek: ertesitesek,
-        kulcsszavak: kulcsszavakDB // <--- BEKERÜLT A RETURNBE
+        kulcsszavak: kulcsszavakDB
     };
 };
 

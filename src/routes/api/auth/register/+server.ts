@@ -61,8 +61,8 @@ export const POST = async ({ request, url, getClientAddress }) => {
                 username: username,
                 email: email,
                 password_hash: hashedPassword,
-                email_verified: false,      // ÚJ: Alapból blokkolva van
-                verification_token: token,  // ÚJ: Itt tároljuk a titkos kódot
+                email_verified: false,      // A megerősítő link használatáig nem lehet belépni
+                verification_token: token,
                 verification_lejarat: megerositesLejarata()
             }
         });

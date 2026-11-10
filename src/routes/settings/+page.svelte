@@ -329,10 +329,11 @@
                     <div class="grid grid-cols-1 gap-4">
                         {#each [...data.forrasok].sort((a, b) => (b.is_own_source ? 1 : 0) - (a.is_own_source ? 1 : 0)) as forras}
                             <div class="flex flex-col p-4 bg-white dark:bg-gray-800 rounded-xl border {forras.is_own_source ? 'border-green-500 ring-1 ring-green-500/50' : 'border-gray-200 dark:border-gray-700'} shadow-sm hover:shadow-md transition-all {!forras.aktiv ? 'opacity-50 grayscale-[30%]' : ''}">
-                                <div class="flex justify-between items-center w-full">
-                                    <div class="overflow-hidden flex-1">
+                                <!-- Telefonon egymás alá kerül a leírás és a kezelőgombok, így a név és a hibaüzenet kifér -->
+                                <div class="flex flex-col gap-3 w-full sm:flex-row sm:items-center sm:justify-between">
+                                    <div class="min-w-0 flex-1">
                                         <div class="flex flex-wrap items-center gap-2 mb-1.5">
-                                            <p class="font-bold text-gray-900 dark:text-white text-lg truncate">{forras.forras_nev}</p>
+                                            <p class="font-bold text-gray-900 dark:text-white text-lg break-words min-w-0">{forras.forras_nev}</p>
                                             {#if forras.tipus === 'YOUTUBE'}<Badge color="red">YouTube</Badge>
                                             {:else}<Badge color="dark">RSS</Badge>{/if}
                                             {#if forras.is_own_source}<Badge color="green">Saját</Badge>{/if}
@@ -351,7 +352,7 @@
                                                 <Badge color="dark">Első frissítésre vár</Badge>
                                             {/if}
                                         </div>
-                                        <a href={biztonsagosHref(forras.forras_url)} target="_blank" rel="noopener noreferrer" class="text-sm text-blue-600 dark:text-blue-400 hover:underline truncate block w-fit">
+                                        <a href={biztonsagosHref(forras.forras_url)} target="_blank" rel="noopener noreferrer" class="text-sm text-blue-600 dark:text-blue-400 hover:underline truncate block max-w-full">
                                             {forras.forras_url}
                                         </a>
                                         {#if forras.utolso_frissites}
@@ -366,17 +367,17 @@
                                             <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">A visszakapcsoláshoz vedd fel velünk a kapcsolatot.</p>
                                         {/if}
                                     </div>
-                                    <div class="flex items-center gap-3 ml-4 border-l border-gray-200 dark:border-gray-700 pl-4 py-1">
+                                    <div class="flex items-center gap-3 border-t border-gray-200 pt-3 dark:border-gray-700 sm:ml-4 sm:border-l sm:border-t-0 sm:py-1 sm:pl-4 sm:pt-1">
                                         <form method="POST" action="?/toggleSource" use:enhance class="flex items-center" title={forras.kikapcsolas_oka === 'ADMIN' ? 'Adminisztrátor kapcsolta ki' : 'Ki/Be kapcsolás'}>
                                             <input type="hidden" name="id" value={forras.id} />
                                             <Toggle color="green" size="small" checked={forras.aktiv} disabled={forras.kikapcsolas_oka === 'ADMIN'} on:change={(e) => (e.target as HTMLElement)?.closest('form')?.requestSubmit()} class="cursor-pointer" />
                                         </form>
-                                        <Button type="button" size="xs" color="light" class="p-2 border-gray-300 dark:border-gray-600 hover:text-blue-600" on:click={() => openEditModal(forras)}>
+                                        <Button type="button" size="xs" color="light" class="p-2 border-gray-300 dark:border-gray-600 hover:text-blue-600" aria-label="Forrás szerkesztése" title="Szerkesztés" on:click={() => openEditModal(forras)}>
                                             <EditOutline class="w-4 h-4" />
                                         </Button>
                                         <form method="POST" action="?/deleteSource" use:enhance class="inline">
                                             <input type="hidden" name="id" value={forras.id} />
-                                            <Button type="submit" color="light" size="xs" class="p-2 border-gray-300 dark:border-gray-600 text-red-600 hover:bg-red-50">
+                                            <Button type="submit" color="light" size="xs" class="p-2 border-gray-300 dark:border-gray-600 text-red-600 hover:bg-red-50" aria-label="Forrás törlése" title="Törlés">
                                                 <TrashBinOutline class="w-4 h-4" />
                                             </Button>
                                         </form>

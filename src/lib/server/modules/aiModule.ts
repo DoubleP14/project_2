@@ -148,7 +148,7 @@ export function createAiModule(services: Services) {
                         }
                     }
                     
-                    // A) AI Elemzés és B) Klaszterezés (ITT ADTUK ÁT PLUSZBAN A hir.cim-et!)
+                    // A) AI elemzés és B) klaszterezés
                     const aiEredmeny = await services.ai.hirElemzese(hir.cim, szoveg, provider, valasztottModell, apiKey);
 
                     // Sikertelen elemzést NEM mentünk el, így a hír a következő futáskor újra sorra kerül
@@ -165,7 +165,7 @@ export function createAiModule(services: Services) {
 
                     const clusterId = await services.ai.hírKlaszterezes(hir, frissKeszHirek, apiKey, provider, valasztottModell);
 
-                    // C) Elemzés mentése és D) Klaszter összekötés (ITT ADJUK ÁT A CLICKBAIT ÉRTÉKET!)
+                    // C) Elemzés mentése és D) a hír klaszterhez kötése
                     await services.hirRepo.saveAiElemzes(
                         hir.id, 
                         aiEredmeny.osszefoglalo || "Nem sikerült összefoglalni.", 
