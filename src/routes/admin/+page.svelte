@@ -42,7 +42,8 @@
         </div>
     </div>
         
-        <div class="flex flex-wrap gap-4">
+    <!-- Összesítők: telefonon 2, nagy kijelzőn 4 egyforma oszlop -->
+    <div class="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
     <div class="bg-white dark:bg-gray-800 rounded-lg p-3 shadow-sm border border-gray-100 dark:border-gray-700 flex items-center gap-3">
         <div class="bg-blue-100 dark:bg-blue-900 p-2 rounded-lg"><UsersSolid class="w-5 h-5 text-blue-600 dark:text-blue-400"/></div>
         <div>

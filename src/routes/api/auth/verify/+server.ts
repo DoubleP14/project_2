@@ -37,7 +37,7 @@ export const GET: RequestHandler = async ({ url }) => {
         }
     });
 
-    // <--- Sikeres e-mail megerősítés naplózása --->
+    // Sikeres megerősítés naplózása
     await logger.info('EMAIL_VERIFIED', `E-mail cím sikeresen aktiválva`, felhasznalo.id);
 
     // 4. Sikeresen átirányítja a bejelentkezéshez

@@ -1,7 +1,7 @@
 // src/lib/server/services/notificationService.ts
 import type { PrismaClient } from "@prisma/client";
 import { levelKuldese, levelkuldesBeallitva } from "./mailer";
-// ÚJ: Behozzuk a decrypt függvényt a visszafejtéshez
+// A titkosítva tárolt Discord webhook és Telegram azonosító visszafejtéséhez
 import { decrypt } from "../crypto";
 import { discordWebhookE, biztonsagosHref } from "$lib/biztonsagosUrl";
 
