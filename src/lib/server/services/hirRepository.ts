@@ -36,12 +36,21 @@ export function createHirRepository(prisma: PrismaClient) {
             });
 
             if (letezoHir) {
+                // A szerkesztőségek fejlődő híreknél frissítik a címet (pl. "Ötre" helyett "Hatra nőtt az áldozatok száma").
+                // Ilyenkor a régi összefoglaló elavult, ezért töröljük, és a hír a következő futáskor újra elemzésre kerül.
+                if (letezoHir.cim !== hirAdat.cim) {
+                    const [, frissitett] = await prisma.$transaction([
+                        prisma.aiElemzesek.deleteMany({ where: { hir_id: letezoHir.id } }),
+                        prisma.hirek.update({
+                            where: { id: letezoHir.id },
+                            data: { cim: hirAdat.cim, tartalom: hirAdat.tartalom, jelentoz: hirAdat.jelentoz }
+                        })
+                    ]);
+                    return frissitett;
+                }
                 return await prisma.hirek.update({
                     where: { id: letezoHir.id },
-                    data: {
-                        cim: hirAdat.cim,           
-                        jelentoz: hirAdat.jelentoz  
-                    }
+                    data: { jelentoz: hirAdat.jelentoz }
                 });
             } else {
                 return await prisma.hirek.create({
