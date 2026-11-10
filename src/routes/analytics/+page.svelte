@@ -96,7 +96,7 @@
                             fontFamily: 'Inter, sans-serif',
                             color: '#D1D5DB', 
                             formatter: function (w: any) {
-                                return data.osszesElemzes + " db"
+                                return data.elemzettDarab + " db"
                             },
                         },
                         value: {
@@ -233,8 +233,10 @@
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 <Card class="text-center shadow-lg dark:bg-gray-800">
                     <h5 class="text-lg font-bold text-gray-500 dark:text-gray-400 mb-2">AI Által Elemzett Hírek</h5>
-                    <span class="text-5xl font-extrabold text-blue-600 dark:text-blue-400">{data.osszesElemzes}</span>
-                    <p class="text-sm mt-2 text-gray-500">Mélyrehatóan kielemezve</p>
+                    <span class="text-5xl font-extrabold text-blue-600 dark:text-blue-400">{data.elemzettDarab}</span>
+                    <p class="text-sm mt-2 text-gray-500">
+                        {data.eloszurtDarab > 0 ? `További ${data.eloszurtDarab} cikket az előszűrő kiszűrt, ezek nem számítanak bele a statisztikába` : 'Mélyrehatóan kielemezve'}
+                    </p>
                 </Card>
 
                 <Card class="text-center shadow-lg dark:bg-gray-800">

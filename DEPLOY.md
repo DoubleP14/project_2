@@ -231,11 +231,29 @@ git pull
 docker compose up -d --build
 ```
 
-**Adatbázis mentések:** naponta automatikusan a `/opt/newstrends/backups` mappába kerülnek, 14 napig megmaradnak. Visszaállítás:
+**Adatbázis mentések:** naponta automatikusan a `/opt/newstrends/backups` mappába kerülnek, 14 napig megmaradnak. Sikertelen mentésnél a napló `HIBA` sort tartalmaz, és a régi mentések nem törlődnek:
 
 ```sh
-gunzip -c backups/newstrends_ÉÉÉÉ-HH-NN_ÓÓPP.sql.gz | docker compose exec -T db psql -U newstrends -d newstrends
+docker compose logs --tail 20 backup
 ```
+
+**Mentés ellenőrzése (havonta ajánlott):** a szkript egy ideiglenes, különálló adatbázisba tölti be a legutóbbi mentést, és összeveti a táblák sorainak számát az élessel. Az éles adatbázist nem módosítja.
+
+```sh
+bash deploy/mentes-proba.sh
+```
+
+**Visszaállítás** (az éles adatbázis tartalmát a mentésre cseréli, ezért előtte érdemes a mostani állapotról is mentést készíteni):
+
+```sh
+docker compose stop app
+docker compose exec -T db sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB"' | gzip > backups/visszaallitas_elott.sql.gz
+docker compose exec -T db sh -c 'dropdb -U "$POSTGRES_USER" "$POSTGRES_DB" && createdb -U "$POSTGRES_USER" "$POSTGRES_DB"'
+gunzip -c backups/newstrends_ÉÉÉÉ-HH-NN_ÓÓPP.sql.gz | docker compose exec -T db sh -c 'psql -q -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
+docker compose start app
+```
+
+A mentést üres adatbázisba kell betölteni: a meglévő táblák mellé betöltve a `psql` ütközésekkel leállna.
 
 Érdemes időnként egy mentést a saját gépedre is letölteni:
 

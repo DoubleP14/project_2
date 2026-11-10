@@ -2,7 +2,8 @@
     import { Card, Badge, Button, Input } from 'flowbite-svelte';
     import { SearchSolid, CogSolid, RefreshOutline } from 'flowbite-svelte-icons';
     import { formatDate } from '$lib/utils/format-date';
-    import { biztonsagosHref } from '$lib/biztonsagosUrl'; 
+    import { biztonsagosHref } from '$lib/biztonsagosUrl';
+    import { eloszurtE } from '$lib/hirSzabalyok';
 
     export let data;
     
@@ -227,7 +228,9 @@
                                 {elemzes.hir.forras?.forras_nev || 'Ismeretlen'}
                             </Badge>
 
-                            {#if elemzes.hangulat === 'POZITIV'}
+                            {#if eloszurtE(elemzes.hasznalt_modell)}
+                                <Badge color="dark" rounded class="border border-dashed border-gray-500" title="Az előszűrő alacsony hírértékűnek ítélte, ezért nem készült róla AI-elemzés">Előszűrt</Badge>
+                            {:else if elemzes.hangulat === 'POZITIV'}
                                 <Badge color="green" rounded>Pozitív</Badge>
                             {:else if elemzes.hangulat === 'NEGATIV'}
                                 <Badge color="red" rounded>Negatív</Badge>
@@ -245,7 +248,8 @@
                                 {/if}
                             {/if}
                             
-                            {#if elemzes.clickbait !== undefined && elemzes.clickbait !== null}
+                            <!-- Az előszűrő clickbait-pontszáma tényszerű címekre is magas, ezért kiszűrt cikknél nem jelenítjük meg -->
+                            {#if elemzes.clickbait !== undefined && elemzes.clickbait !== null && !eloszurtE(elemzes.hasznalt_modell)}
                                 {#if elemzes.clickbait >= 71}
                                     <Badge color="red" rounded class="font-extrabold border border-red-500 animate-pulse">
                                         🚨 Clickbait!

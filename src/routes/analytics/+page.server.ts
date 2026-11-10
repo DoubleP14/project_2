@@ -2,6 +2,7 @@
 import { services } from '$lib/server';
 import { redirect } from '@sveltejs/kit';
 import { csvExportEngedelyezett } from '$lib/csomagok';
+import { nemEloszurtFeltetel } from '$lib/hirSzabalyok';
 
 export const load = async ({ locals }) => {
     // Biztonsági ellenőrzés: csak bejelentkezett felhasználó láthatja
@@ -17,10 +18,16 @@ export const load = async ({ locals }) => {
         where: { hir: { forras: { felhasznalo_id: userId } } }
     });
 
+    // A statisztikák csak a valódi AI-elemzéseket veszik figyelembe: az előszűrt cikkekhez nem készült
+    // hangulatelemzés, ezért azok "Semleges" alapértéke torzítaná a megoszlást és az átlagot
+    const elemzettFeltetel = { hir: { forras: { felhasznalo_id: userId } }, ...nemEloszurtFeltetel };
+    const elemzettDarab = await prisma.aiElemzesek.count({ where: elemzettFeltetel });
+    const eloszurtDarab = osszesElemzes - elemzettDarab;
+
     // 2. Hangulatok szerinti csoportosítás (CSAK A SAJÁT HÍREKRE)
     const hangulatok = await prisma.aiElemzesek.groupBy({
         by: ['hangulat'],
-        where: { hir: { forras: { felhasznalo_id: userId } } },
+        where: elemzettFeltetel,
         _count: { hangulat: true }
     });
 
@@ -33,15 +40,15 @@ export const load = async ({ locals }) => {
     // --- HÍRÉRTÉK STATISZTIKÁK (CSAK A SAJÁT HÍREKRE) ---
     // Globális Hírérték átlag lekérése
     const hirertekAgregacio = await prisma.aiElemzesek.aggregate({
-        where: { hir: { forras: { felhasznalo_id: userId } } },
+        where: elemzettFeltetel,
         _avg: { pontszam: true }
     });
     const atlagosHirertek = Math.round(hirertekAgregacio._avg.pontszam || 0);
 
     // Darabszámok kategóriák szerint (0-30, 31-70, 71-100)
-    const alacsonyDarab = await prisma.aiElemzesek.count({ where: { pontszam: { lte: 30 }, hir: { forras: { felhasznalo_id: userId } } } });
-    const normalDarab = await prisma.aiElemzesek.count({ where: { pontszam: { gt: 30, lte: 70 }, hir: { forras: { felhasznalo_id: userId } } } });
-    const kiemelkedoDarab = await prisma.aiElemzesek.count({ where: { pontszam: { gt: 70 }, hir: { forras: { felhasznalo_id: userId } } } });
+    const alacsonyDarab = await prisma.aiElemzesek.count({ where: { pontszam: { lte: 30 }, ...elemzettFeltetel } });
+    const normalDarab = await prisma.aiElemzesek.count({ where: { pontszam: { gt: 30, lte: 70 }, ...elemzettFeltetel } });
+    const kiemelkedoDarab = await prisma.aiElemzesek.count({ where: { pontszam: { gt: 70 }, ...elemzettFeltetel } });
 
     // 3. Nyers források lekérése (CSAK A SAJÁT FORRÁSOK!)
     // BELEÉRTVE A GLOBÁLIS FORRÁSOKAT IS 
@@ -79,6 +86,8 @@ export const load = async ({ locals }) => {
     return {
         csvExport: csvExportEngedelyezett(locals.user),
         osszesElemzes,
+        elemzettDarab,
+        eloszurtDarab,
         stat,
         forrasok: egyediForrasok,
         atlagosHirertek,
