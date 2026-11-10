@@ -4,10 +4,10 @@
 // nem kell a drágább szöveges modellt (LLM) hívni.
 import { score, TypeSafeClient } from '@typesafe-ai/sdk';
 
-// Szűrési küszöbök (0-100-as skálán, a Hírérték és a Clickbait Radar kategóriáival összhangban)
+// Szűrési küszöb (0-100-as skálán, a Hírérték "alacsony" kategóriájával összhangban).
+// A Jev clickbait-pontszáma alapján nem szűrünk: a 2026 novemberi mérésben tényszerű címekre is 90 fölötti
+// értéket adott, és így fontos híreket (pl. egy országos intézmény vezetőjének lemondását) szűrt ki.
 const ALACSONY_HIRERTEK = 30;
-const KIEMELT_HIRERTEK = 70;
-const EROS_CLICKBAIT = 71;
 // Bizonytalan értékelésnél nem szűrünk: inkább menjen az LLM-hez, mint hogy fontos hír vesszen el
 const MIN_MEGBIZHATOSAG = 0.6;
 
@@ -18,10 +18,9 @@ export type JevEredmeny = {
     tokenek: number;
 };
 
-// Csak biztos értékelésnél szűrünk: nagyon alacsony hírérték, vagy erős clickbait nem kiemelt hírnél
-export function jevSzurendoE(e: { hirertek: number; clickbait: number; hirertekBizalom: number; clickbaitBizalom: number }): boolean {
-    const biztos = e.hirertekBizalom >= MIN_MEGBIZHATOSAG && e.clickbaitBizalom >= MIN_MEGBIZHATOSAG;
-    return biztos && (e.hirertek <= ALACSONY_HIRERTEK || (e.clickbait >= EROS_CLICKBAIT && e.hirertek <= KIEMELT_HIRERTEK));
+// Csak biztos értékelésnél és nagyon alacsony hírértéknél szűrünk
+export function jevSzurendoE(e: { hirertek: number; hirertekBizalom: number }): boolean {
+    return e.hirertekBizalom >= MIN_MEGBIZHATOSAG && e.hirertek <= ALACSONY_HIRERTEK;
 }
 
 export function createJevEloszuro(apiKey: string) {
@@ -51,12 +50,8 @@ export function createJevEloszuro(apiKey: string) {
         const hirertek = Math.round((answers.hirertek.score / 4) * 100);
         const clickbait = Math.round((answers.clickbait.score / 2) * 100);
 
-        const szurendo = jevSzurendoE({
-            hirertek,
-            clickbait,
-            hirertekBizalom: answers.hirertek.confidence,
-            clickbaitBizalom: answers.clickbait.confidence
-        });
+        // A clickbait-pontszámot csak megjelenítjük, a szűrésben nem vesz részt
+        const szurendo = jevSzurendoE({ hirertek, hirertekBizalom: answers.hirertek.confidence });
 
         return { hirertek, clickbait, szurendo, tokenek: usage.input_tokens ?? 0 };
     };

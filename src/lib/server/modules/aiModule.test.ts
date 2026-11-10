@@ -165,6 +165,7 @@ describe('riasztás', () => {
         expect(services.notify.ertesitesKuldese.mock.calls[0][2].cim).toContain('RELEVÁNS TÉMA');
     });
 
+    // Címváltozás miatti újraelemzésnél is ez véd: a hír mindig a saját klaszteréhez tartozik, így korábbi riasztása megtalálható
     it('ugyanarról a témáról nem küld második értesítést', async () => {
         const { services, futtat } = tesztkornyezet({ kulcsszavak: ['cikk'], korabbiErtesites: true });
         await futtat();

@@ -1,6 +1,9 @@
 // Az AI-kiértékelés közös függvényei: CSV kezelés, mintavétel és mérőszámok.
 // Külső függőség nélküli, tiszta függvények, így önállóan tesztelhetők.
 import { readFileSync, writeFileSync } from 'node:fs';
+import { angolSzovegE } from '../../src/lib/nyelvFelismeres.ts';
+
+export { angolSzovegE };
 
 // ─── CSV ──────────────────────────────────────────────────────────────
 
@@ -283,6 +286,21 @@ export function hangulatMeres(ai, ember) {
 // A prompt kalibrációs példái ("Cím" = pontszám). Ha egy mért cikk ezek egyike, a modell a választ is látta.
 export const promptPeldak = (prompt) => [...prompt.matchAll(/"([^"\n]{10,})"\s*=\s*\d+/g)].map((m) => m[1]);
 
+// A 3121dd3 commit promptjának példái. Valós Telex-cikkekből készültek, ezért a 2026 novemberi mintában is szerepelnek.
+// A kiértékelés ezeket továbbra is kizárja, hogy a javítás előtti és utáni mérés ugyanazokon a cikkeken történjen.
+export const KORABBI_PROMPT_PELDAK = [
+    'Trump Donald Trumpnak öltözött halloweenkor',
+    '28 év után hazatért a brit kalandor',
+    'Bocsánatkéréssel és sérelemdíjjal tartozik a börtön egy apának',
+    'Kisrepülő zuhant le Floridában',
+    'Bedőlt egy paraguayi bank, amelyben az OTP is részesedést szerzett',
+    '29-en meghaltak egy orosz bombázásban Zaporizzsjában',
+    'Elhalasztják a szerbiai CPAC-konferenciát, ahol Vučić lett volna a sztárszónok',
+    'Bocsánatkéréssel és 500 ezer forint sérelemdíjjal tartozik a börtön az apának, akinek nem engedték, hogy elbúcsúzzon haldokló fiától',
+    'Hullámvasúton az olajár: Hétfőn tárgyalunk, kedden háborúzunk',
+    'Nem hinném - kommentelte Magyar'
+];
+
 const kulcsszavai = (s) => [...new Set(String(s).toLowerCase().match(/[\p{L}\d-]{4,}/gu) ?? [])];
 
 // Egyezik, ha a példa hosszabb szavainak legalább 60%-a szerepel a címben (szórészletként is, a ragok miatt)
@@ -295,18 +313,6 @@ export function szivargasE(cim, peldak) {
 }
 
 // ─── A TELJES EXPORT AUTOMATIKUS VIZSGÁLATA (kézi pontozás nélkül) ────
-
-const ANGOL_SZAVAK = new Set(['the', 'and', 'of', 'has', 'have', 'was', 'were', 'will', 'with', 'for', 'that', 'from', 'is', 'are', 'to', 'in', 'on', 'by']);
-const MAGYAR_SZAVAK = new Set(['a', 'az', 'és', 'hogy', 'egy', 'nem', 'de', 'is', 'meg', 'már', 'után', 'szerint', 'miatt', 'valamint', 'volt', 'lesz']);
-
-// Egyszerű szóstatisztika a nyelv becslésére: nagyon rövid szövegre nem ad ítéletet
-export function angolSzovegE(szoveg) {
-    const szavak = String(szoveg ?? '').toLowerCase().match(/[\p{L}]+/gu) ?? [];
-    if (szavak.length < 6) return false;
-    const angol = szavak.filter((s) => ANGOL_SZAVAK.has(s)).length;
-    const magyar = szavak.filter((s) => MAGYAR_SZAVAK.has(s)).length;
-    return angol >= 2 && angol > magyar * 2;
-}
 
 export function exportVizsgalat(sorok) {
     const llm = sorok.filter((s) => !jevSorE(s));

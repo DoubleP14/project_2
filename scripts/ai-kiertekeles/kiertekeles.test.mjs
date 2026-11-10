@@ -176,12 +176,12 @@ describe('pontozólap beolvasása', () => {
 describe('Jev mérés', () => {
     it('az emberi pontokra ugyanazt a szabályt alkalmazza, mint az éles szűrő', () => {
         expect(emberSzerintSzurendo({ hirertek: 30, clickbait: 0 })).toBe(true);
-        expect(emberSzerintSzurendo({ hirertek: 70, clickbait: 71 })).toBe(true);
-        expect(emberSzerintSzurendo({ hirertek: 71, clickbait: 100 })).toBe(false);
+        expect(emberSzerintSzurendo({ hirertek: 31, clickbait: 0 })).toBe(false);
+        expect(emberSzerintSzurendo({ hirertek: 50, clickbait: 100 })).toBe(false);
     });
 
     it('megszámolja a jogos és a tévesen kiszűrt híreket', () => {
-        const ember = new Map([['1', { hirertek: 20, clickbait: 0 }], ['2', { hirertek: 65, clickbait: 0 }]]);
+        const ember = new Map([['1', { hirertek: 20, clickbait: 0 }], ['2', { hirertek: 65, clickbait: 90 }]]);
         expect(jevMeres([{ sorszam: '1' }, { sorszam: '2' }, { sorszam: '3' }], ember)).toEqual({ n: 2, jogos: 1, fontosElveszett: 1 });
     });
 });

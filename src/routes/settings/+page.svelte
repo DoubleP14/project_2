@@ -179,7 +179,7 @@
                                     value={data.felhasznalo?.jev_api_key ?? ''}
                                 />
                                 <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
-                                    A TypeSafe Jev modellje előre kiszűri a bulvárt és a clickbaitet, így ezekre nem fogy az AI szolgáltatód kerete. A figyelt kulcsszavakat tartalmazó cikkeket sosem szűri ki.
+                                    A TypeSafe Jev modellje előre kiszűri a nagyon alacsony hírértékű cikkeket (pl. bulvár, recept, programajánló), így ezekre nem fogy az AI szolgáltatód kerete. A figyelt kulcsszavakat tartalmazó cikkeket sosem szűri ki.
                                     Kulcsot itt kérhetsz: <a href="https://console.typesafe.ai/" target="_blank" rel="noopener noreferrer" class="font-medium text-blue-600 hover:underline dark:text-blue-400">console.typesafe.ai</a>
                                 </p>
                             </div>

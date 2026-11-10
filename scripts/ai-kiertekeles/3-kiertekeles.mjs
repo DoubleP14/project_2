@@ -6,7 +6,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 import { readFileSync } from 'node:fs';
-import { csvBeolvas, exportVizsgalat, fajlSzoveg, hangulatMeres, hangulatNormal, HANGULATOK, jevSorE, pontszamMeres, promptPeldak, szivargasE } from './kozos.mjs';
+import { csvBeolvas, exportVizsgalat, fajlSzoveg, hangulatMeres, hangulatNormal, HANGULATOK, jevSorE, KORABBI_PROMPT_PELDAK, pontszamMeres, promptPeldak, szivargasE } from './kozos.mjs';
 
 const AI_SERVICE = join(dirname(fileURLToPath(import.meta.url)), '../../src/lib/server/services/aiService.ts');
 
@@ -88,8 +88,8 @@ function modellMeres(cim, sorok, ember) {
     ];
 }
 
-// Az előszűrő döntése az emberi pontok szerint: ugyanazokkal a küszöbökkel, mint az éles szabály
-export const emberSzerintSzurendo = (e) => e.hirertek <= 30 || (e.clickbait >= 71 && e.hirertek <= 70);
+// Az előszűrő döntése az értékelő pontjai szerint, ugyanazzal a küszöbbel, mint az éles szabály (legfeljebb 30 pontos hírérték)
+export const emberSzerintSzurendo = (e) => e.hirertek <= 30;
 
 export function jevMeres(jevSorok, ember) {
     const parok = jevSorok.filter((s) => ember.has(s.sorszam)).map((s) => ember.get(s.sorszam));
@@ -142,7 +142,7 @@ function fo() {
         const { kitoltott: mindKitoltott, hibak, hianyos } = pontozolapBeolvasas(lapSorok);
 
         // A prompt példáival egyező cikkeken a modell a választ is látta, ezért ezek nem számítanak bele
-        const peldak = promptPeldak(readFileSync(AI_SERVICE, 'utf8'));
+        const peldak = [...promptPeldak(readFileSync(AI_SERVICE, 'utf8')), ...KORABBI_PROMPT_PELDAK];
         const szivargo = lapSorok.filter((s) => szivargasE(s.cim, peldak));
         const szivargoSorszam = new Set(szivargo.map((s) => s.sorszam));
         const kitoltott = mindKitoltott.filter((s) => !szivargoSorszam.has(s.sorszam));
