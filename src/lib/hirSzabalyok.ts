@@ -23,6 +23,14 @@ export function kulcsszoTalalat(szoveg: string, kulcsszavak: string[]): string |
     return kulcsszavak.find((k) => k.trim() !== '' && kicsi.includes(k.toLowerCase())) ?? null;
 }
 
+// Az előszűrő által kiszűrt cikkek elemzése ezzel a modellnévvel mentődik. Ezekhez nem készült AI-összefoglaló
+// és hangulatelemzés, ezért a statisztikákból kimaradnak, a felületen pedig "Előszűrt" címkét kapnak.
+export const ELOSZURES_MODELL = 'jev-latest (előszűrés)';
+export const eloszurtE = (hasznaltModell: string | null | undefined) => (hasznaltModell ?? '').startsWith('jev');
+
+// Prisma feltétel a statisztikákhoz (a NULL modellnevet külön engedjük, mert a NOT ... LIKE kizárná)
+export const nemEloszurtFeltetel = { OR: [{ hasznalt_modell: null }, { NOT: { hasznalt_modell: { startsWith: 'jev' } } }] };
+
 // Fontossági rangsor: 0 = kiemelt, 1 = normál, 2 = hátrasorolt (clickbait vagy alacsony hírérték)
 export function rangsorSzint(elemzes: { pontszam: number | null; clickbait: number }): 0 | 1 | 2 {
     const pontszam = elemzes.pontszam ?? 0;

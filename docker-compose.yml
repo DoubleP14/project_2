@@ -51,7 +51,9 @@ services:
     depends_on:
       - app
 
-  # Napi adatbázis mentés – 14 napig őrzi meg a tömörített mentéseket a ./backups mappában
+  # Napi adatbázis mentés – 14 napig őrzi meg a tömörített mentéseket a ./backups mappában.
+  # A pg_dump eredményét előbb ellenőrizzük: a "pg_dump | gzip" hiba esetén is üres, de ép fájlt hozna létre.
+  # A régi mentések törlése csak sikeres mentés után fut, hogy tartós hiba esetén ne vesszen el minden mentés.
   backup:
     image: postgres:17
     restart: unless-stopped
@@ -65,8 +67,14 @@ services:
     entrypoint: >
       sh -c 'while true; do
         FAJL="/backups/newstrends_$$(date +%Y-%m-%d_%H%M).sql.gz";
-        pg_dump | gzip > "$$FAJL" && echo "Mentés kész: $$FAJL";
-        find /backups -name "newstrends_*.sql.gz" -mtime +14 -delete;
+        if pg_dump > "$$FAJL.tmp" && gzip -c "$$FAJL.tmp" > "$$FAJL"; then
+          echo "Mentés kész: $$FAJL";
+          find /backups -name "newstrends_*.sql.gz" -mtime +14 -delete;
+        else
+          echo "HIBA: az adatbázis mentése nem sikerült, a régi mentések megmaradnak." >&2;
+          rm -f "$$FAJL";
+        fi;
+        rm -f "$$FAJL.tmp";
         sleep 86400;
       done'
     depends_on:

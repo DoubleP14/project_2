@@ -3,7 +3,7 @@ import type { Services } from '../index';
 import { decrypt } from '../crypto';
 import { KATEGORIA_SZOTAR, illeszkedoKategoria } from '$lib/kategoriak';
 import { modellValasztas } from '$lib/aiModellek';
-import { bombahirE, kulcsszoTalalat, kulonbozoForrasokSzama, temakorRiasztasE } from '$lib/hirSzabalyok';
+import { bombahirE, ELOSZURES_MODELL, kulcsszoTalalat, kulonbozoForrasokSzama, temakorRiasztasE } from '$lib/hirSzabalyok';
 import { createJevEloszuro } from '../services/jevService';
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -128,7 +128,7 @@ export function createAiModule(services: Services) {
                                     hir.id,
                                     'Az előszűrő alacsony hírértékűnek vagy clickbaitnek ítélte, ezért nem készült AI-összefoglaló.',
                                     'SEMLEGES',
-                                    'jev-latest (előszűrés)',
+                                    ELOSZURES_MODELL,
                                     jev.hirertek,
                                     jev.clickbait,
                                     []
