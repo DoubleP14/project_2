@@ -49,6 +49,12 @@ model Felhasznalok {
   jelszo_reset_token   String?   @unique
   jelszo_reset_lejarat DateTime?
 
+  // ─── FIÓK TÖRLÉSE (e-mailes megerősítéssel) ───
+  // Csak a token SHA-256 hash-e. Szándékosan nincs @unique: egy új egyedi megkötés miatt a "prisma db push"
+  // adatvesztésre figyelmeztet és megállítja az indítást, a véletlen 64 karakteres hash pedig gyakorlatilag nem ütközik.
+  fiok_torles_token    String?
+  fiok_torles_lejarat  DateTime?
+
   // ─── MUNKAMENET VERZIÓ ───
   // A JWT tartalmazza ezt az értéket; növelésével (jelszócsere, kijelentkezés mindenhonnan)
   // az összes korábban kiadott munkamenet azonnal érvénytelenné válik

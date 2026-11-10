@@ -1,6 +1,7 @@
 // src/lib/server/services/emailService.ts
 import { levelKuldese } from './mailer';
 import { env } from '$env/dynamic/private';
+import { ADATKEZELO } from '$lib/adatkezelo';
 
 // Felhasználói / külső szöveg biztonságos beillesztése a HTML levélbe
 const escapeHtml = (szoveg: string) =>
@@ -27,7 +28,45 @@ const gombosEmailSablon = (cim: string, bevezeto: string, gombSzoveg: string, ur
     </div>
 `;
 
+// Gomb nélküli, tájékoztató e-mail (pl. a fióktörlés visszaigazolása)
+const szovegesEmailSablon = (cim: string, bekezdesek: string[]) => `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 30px; border: 1px solid #e4e4e7; border-radius: 12px; background-color: #ffffff;">
+        <p style="text-align: center; font-size: 20px; font-weight: 800; color: #0f172a; margin: 0 0 24px 0;">News <span style="color: #2563eb;">Trends</span></p>
+        <h2 style="color: #0f172a; text-align: center; margin-bottom: 20px;">${cim}</h2>
+        ${bekezdesek.map((b) => `<p style="color: #3f3f46; font-size: 16px; line-height: 1.5;">${b}</p>`).join('')}
+    </div>
+`;
+
 export const emailService = {
+    // Fióktörlés megerősítése: a törlés csak a linkre kattintás és az ott megjelenő gomb megnyomása után történik meg
+    sendAccountDeletionConfirmEmail: async (email: string, token: string, origin: string, ervenyessegPerc: number) => {
+        const url = `${origin}/fiok-torlese?token=${token}`;
+        await levelKuldese({
+            to: email,
+            subject: '⚠️ Fiók törlésének megerősítése - News Trends',
+            html: gombosEmailSablon(
+                'Fiók törlésének megerősítése',
+                'Kérés érkezett a News Trends fiókod <b>végleges törlésére</b>. A törlés minden adatodat (hírforrások, elemzések, beállítások, API kulcsok) visszavonhatatlanul eltávolítja. Ha valóban törölni szeretnéd, kattints az alábbi gombra, és a megnyíló oldalon erősítsd meg.',
+                'Tovább a törlés megerősítéséhez',
+                url,
+                `A link ${ervenyessegPerc} percig érvényes. Ha nem te kérted, ne kattints rá, és változtasd meg a jelszavadat: lehet, hogy valaki hozzáfért a fiókodhoz. A fiókod ilyenkor érintetlen marad.`
+            )
+        });
+    },
+
+    // Visszaigazolás a törlés után (ha mégsem a tulajdonos volt, legalább azonnal értesül róla)
+    sendAccountDeletedEmail: async (email: string) => {
+        await levelKuldese({
+            to: email,
+            subject: 'A fiókod törlődött - News Trends',
+            html: szovegesEmailSablon('A fiókod törlődött', [
+                'A News Trends fiókodat és a hozzá tartozó adatokat a kérésedre, e-mailes megerősítés után véglegesen töröltük.',
+                'A korábban kiállított számlák a számviteli törvény alapján 8 évig megmaradnak a Számlázz.hu rendszerében.',
+                `Ha nem te kérted a törlést, kérjük, azonnal jelezd: <a href="mailto:${ADATKEZELO.email}" style="color: #2563eb;">${ADATKEZELO.email}</a>`
+            ])
+        });
+    },
+
     sendVerificationEmail: async (email: string, token: string, origin: string) => {
         // Legenerálja a linket, amire a felhasználónak rá kell kattintania az emailben
         const verifyUrl = `${origin}/api/auth/verify?token=${token}`;
