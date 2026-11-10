@@ -68,6 +68,16 @@ node scripts/ai-kiertekeles/3-kiertekeles.mjs
 
 Az eredmény a `munka/eredmeny.md` fájlba kerül.
 
+A prompt kalibrációs példáival egyező cikkeket a kiértékelés automatikusan kihagyja, mert ezeknél a modell a választ is látta. A kihagyott sorszámokat az eredmény felsorolja.
+
+Másik pontozólap (például egy második értékelőé vagy egy AI-bírálóé) így értékelhető:
+
+```bash
+node scripts/ai-kiertekeles/3-kiertekeles.mjs --lap pontozolap-masik.csv --ertekelo "Második értékelő"
+```
+
+Az eredmény ilyenkor `munka/eredmeny-pontozolap-masik.md` néven készül, így nem írja felül a sajátodat.
+
 ## Pontozási skála
 
 A skála megegyezik az AI promptjával, hogy ugyanazt a kérdést kapja az ember és a modell. Az éles prompt az `src/lib/server/services/aiService.ts` fájlban van.
