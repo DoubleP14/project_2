@@ -34,3 +34,6 @@ deploy/certs/
 
 # AI-kiértékelés: letöltött cikkek és pontozólapok
 scripts/ai-kiertekeles/munka/
+
+# Szakdolgozati munkaanyag és ábrák (helyben, a nyilvános repóba nem kerülnek)
+docs/szakdolgozat/
