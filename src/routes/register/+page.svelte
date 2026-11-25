@@ -10,6 +10,7 @@
     let username = '';
     let email = '';
     let password = '';
+    let passwordConfirm = '';
 
     // Visszajelzések a UI-on
     let hibaUzenet = '';
@@ -17,6 +18,7 @@
     let loading = false;
 
     $: jelszoRovid = password.length > 0 && password.length < MIN_JELSZO_HOSSZ;
+    $: nemEgyezik = passwordConfirm.length > 0 && password !== passwordConfirm;
 
     // Ez a függvény fut le, amikor rákattintanak a "Regisztráció" gombra
     const handleRegister = async () => {
@@ -25,6 +27,10 @@
 
         if (password.length < MIN_JELSZO_HOSSZ) {
             hibaUzenet = `A jelszónak legalább ${MIN_JELSZO_HOSSZ} karakter hosszúnak kell lennie.`;
+            return;
+        }
+        if (password !== passwordConfirm) {
+            hibaUzenet = 'A két jelszó nem egyezik.';
             return;
         }
 
@@ -47,6 +53,7 @@
                 username = '';
                 email = '';
                 password = '';
+                passwordConfirm = '';
             }
         } catch (err) {
             hibaUzenet = 'Hálózati hiba történt. Kérlek próbáld újra!';
@@ -98,8 +105,15 @@
                 <Input type="password" name="password" id="password" placeholder="••••••••" autocomplete="new-password" minlength={MIN_JELSZO_HOSSZ} bind:value={password} required color={jelszoRovid ? 'red' : 'base'} />
                 <Helper class="mt-1.5" color={jelszoRovid ? 'red' : 'gray'}>Legalább {MIN_JELSZO_HOSSZ} karakter.</Helper>
             </div>
+            <div>
+                <Label for="password_confirm" class="mb-2">Jelszó megerősítése</Label>
+                <Input type="password" name="password_confirm" id="password_confirm" placeholder="••••••••" autocomplete="new-password" bind:value={passwordConfirm} required color={nemEgyezik ? 'red' : 'base'} />
+                {#if nemEgyezik}
+                    <Helper class="mt-1.5" color="red">A két jelszó nem egyezik.</Helper>
+                {/if}
+            </div>
 
-            <Button type="submit" class="w-full" disabled={loading}>
+            <Button type="submit" class="w-full" disabled={loading || nemEgyezik}>
                 {loading ? 'Regisztráció folyamatban...' : 'Regisztráció'}
             </Button>
 

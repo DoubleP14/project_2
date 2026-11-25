@@ -43,7 +43,7 @@
                     <Helper class="mt-1.5" color={jelszoRovid ? 'red' : 'gray'}>Legalább {MIN_JELSZO_HOSSZ} karakter.</Helper>
                 </div>
                 <div>
-                    <Label for="password_confirm" class="mb-2">Új jelszó még egyszer</Label>
+                    <Label for="password_confirm" class="mb-2">Új jelszó megerősítése</Label>
                     <Input type="password" name="password_confirm" id="password_confirm" autocomplete="new-password" bind:value={passwordConfirm} required color={nemEgyezik ? 'red' : 'base'} />
                     {#if nemEgyezik}
                         <Helper class="mt-1.5" color="red">A két jelszó nem egyezik.</Helper>
